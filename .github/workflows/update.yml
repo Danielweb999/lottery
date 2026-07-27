@@ -1,0 +1,51 @@
+name: 每日自動更新
+
+on:
+  schedule:
+    # GitHub 使用 UTC 時間；排程為盡力而為，可能延後 5-20 分鐘
+    - cron: "0 14 * * *"    # 台北 22:00 — 台灣與香港開獎後
+    - cron: "0 3 * * *"     # 台北 11:00 — 加州開獎後
+  workflow_dispatch:        # 也可以到 Actions 分頁手動按一下
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lottery-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝相依套件
+        run: python -m pip install --quiet --upgrade certifi
+
+      - name: 更新資料庫並產生網頁
+        run: |
+          if [ -f lottery.db ]; then
+            echo "已有資料庫，只抓最近資料"
+            python lottery_db.py --recent --out index.html
+          else
+            echo "首次執行，抓取近十年"
+            python lottery_db.py --years 10 --out index.html
+          fi
+
+      - name: 提交變更
+        run: |
+          git config user.name "lottery-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "沒有新資料，不需提交"
+          else
+            git commit -m "自動更新 $(TZ=Asia/Taipei date +'%Y-%m-%d %H:%M')"
+            git push
+          fi
