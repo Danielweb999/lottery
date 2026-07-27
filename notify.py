@@ -32,7 +32,11 @@ except Exception:
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(HERE, "lottery.db")
 STATE = os.path.join(HERE, "notified.json")
-HOOK_FILE = os.path.join(HERE, "discord_webhook.txt")
+CONF = os.path.join(HERE, "設定")
+os.makedirs(CONF, exist_ok=True)
+_new = os.path.join(CONF, "discord_webhook.txt")
+_old = os.path.join(HERE, "discord_webhook.txt")
+HOOK_FILE = _new if (os.path.exists(_new) or not os.path.exists(_old)) else _old
 
 RED, BLUE, GREEN = (200, 53, 43), (31, 79, 216), (20, 135, 90)
 INK, MUTE, LINE_C = (28, 28, 30), (110, 110, 120), (226, 226, 232)
