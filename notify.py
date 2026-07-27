@@ -171,7 +171,10 @@ def render(games, when):
         x = PAD + 20
         # 彩種名 + 期別
         d.text((x, y + 14), g["name"], font=F(21, True), fill=INK)
-        d.text((W - PAD - 20, y + 18), f"第 {g['draw_id']} 期", font=F(14), fill=MUTE, anchor="ra")
+        # pilio 來源沒有正式期別（暫用日期當識別），這時就不顯示期別
+        if g["draw_id"] != g["date"]:
+            d.text((W - PAD - 20, y + 18), f"第 {g['draw_id']} 期",
+                   font=F(14), fill=MUTE, anchor="ra")
         wd = dt.date.fromisoformat(g["date"])
         d.text((W - PAD - 20, y + 38), g["date"] + " (" + WEEK[wd.weekday()] + ")",
                font=F(14), fill=MUTE, anchor="ra")
