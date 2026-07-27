@@ -719,7 +719,7 @@ def build_html(con, force=False):
             lo, tie, hi = thresholds(g, sc)
             th[sc] = dict(lo=lo, tie=tie, hi=hi, theory=theory(g, sc))
         payload[gid] = dict(
-            name=g["name"], short=g["short"],
+            name=g["name"], short=g["short"], kind=g["kind"],
             charts=[list(c) for c in g["charts"]], th=th,
             rows=[[r[0], r[1], json.loads(r[2]), r[3], r[4], r[5]] for r in rows],
         )
@@ -979,10 +979,14 @@ function seqOf(G,rows,scope,mode){
     }else{ raw=(v%2===1)?"O":"E"; blue=(raw==="E"); }
     const nums=r[2].join(" ")+(r[3]!==null?" + "+r[3]:"");
     return {raw,blue,tie,v,
-      tip:`${r[1]}　第 ${r[0]} 期\n號碼：${nums}\n${scope==="all"?"7球":"6球"}總和：${v}`};
+      tip:`${r[1]}${r[0]===r[1]?"":"　第 "+r[0]+" 期"}\n號碼：${nums}\n${scope==="all"?"7球":"6球"}總和：${v}`};
   });
 }
 const clsOf=s=>s.tie?"g":(s.blue?"b":"r");
+
+/* 球號顯示：1-39 或 1-49 這種補成兩位（07）；
+   三星彩、四星彩的每一位就是單一數字，絕對不能補零 */
+const ballTxt=(G,x)=> G.kind==="digit" ? String(x) : String(x).padStart(2,"0");
 
 /* 目前連莊長度：和局不中斷，與路子圖畫法一致 */
 function streakOf(s){
@@ -1009,9 +1013,9 @@ function render(){
   let H="";
   if(last){
     H+=`<div class="now"><div class="hd">
-      <b>最新一期</b><span class="dt">${last[1]}　第 ${last[0]} 期</span>
-      <span class="balls">${last[2].map(x=>`<span class="ball">${String(x).padStart(2,"0")}</span>`).join("")}
-      ${last[3]!==null?`<span class="ball sp">${String(last[3]).padStart(2,"0")}</span>`:""}</span>
+      <b>最新一期</b><span class="dt">${last[1]}${last[0]===last[1]?"":"　第 "+last[0]+" 期"}</span>
+      <span class="balls">${last[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")}
+      ${last[3]!==null?`<span class="ball sp">${ballTxt(G,last[3])}</span>`:""}</span>
       <span class="dt">總和 ${last[4]}${last[5]!==last[4]?` / ${last[5]}`:""}</span></div>`;
     G.charts.forEach(([title,scope,mode])=>{
       const s=seqOf(G,rows,scope,mode);
@@ -1102,12 +1106,12 @@ function render(){
     +`<th>大小</th><th>單雙</th></tr></thead><tbody>`;
   const t6=G.th["main"], t7=G.th["all"];
   rows.slice().reverse().slice(0,100).forEach(r=>{
-    const balls=r[2].map(x=>`<span class="ball">${x}</span>`).join("")
-      +(r[3]!==null?`<span class="ball sp">${r[3]}</span>`:"");
+    const balls=r[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")
+      +(r[3]!==null?`<span class="ball sp">${ballTxt(G,r[3])}</span>`:"");
     const bs=v=>{const t=t6;return (t.tie!==null&&v===t.tie)?'<b class="c-g">和</b>'
       :(v<=t.lo?'<b class="c-b">小</b>':'<b class="c-r">大</b>');};
     const oe=v=>v%2===1?'<b class="c-r">單</b>':'<b class="c-b">雙</b>';
-    H+=`<tr><td>${r[1]}</td><td style="color:var(--mute);font-size:11.5px">${r[0]}</td>
+    H+=`<tr><td>${r[1]}</td><td style="color:var(--mute);font-size:11.5px">${r[0]===r[1]?"—":r[0]}</td>
       <td>${balls}</td><td class="num">${r[4]}</td>`
       +(t7?`<td class="num">${r[5]}</td>`:``)
       +`<td>${bs(r[4])}</td><td>${oe(r[4])}</td></tr>`;
