@@ -361,7 +361,7 @@ def main():
 
     new = []
     for g in games:
-        if a.test or state.get(g["gid"]) != g["draw_id"]:
+        if a.test or state.get(g["gid"]) != g["date"]:
             new.append(g)
             print(f"  ● {g['name']}　第 {g['draw_id']} 期（{g['date']}）")
         else:
@@ -418,7 +418,7 @@ def main():
 
     if not a.test:
         for g in new:
-            state[g["gid"]] = g["draw_id"]
+            state[g["gid"]] = g["date"]
         save_state(state)
         print(f"  已更新通知紀錄 {STATE}")
     return 0
