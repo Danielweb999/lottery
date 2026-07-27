@@ -632,7 +632,12 @@ def stats(con):
 
 # ─────────────────────────── 產生網頁 ───────────────────────────
 
-def build_html(con):
+def build_html(con, force=False):
+    # 安全鎖：如果這次能呈現的彩種數比上次少，代表抓取出了問題，
+    # 寧可不動網頁，也不要把好好的網站蓋成殘缺版本。
+    prev = con.execute("SELECT val FROM meta WHERE key='html_games'").fetchone()
+    prev_n = int(prev[0]) if prev else 0
+
     payload = {}
     for gid, g in GAMES.items():
         rows = con.execute(
@@ -650,13 +655,28 @@ def build_html(con):
             charts=[list(c) for c in g["charts"]], th=th,
             rows=[[r[0], r[1], json.loads(r[2]), r[3], r[4], r[5]] for r in rows],
         )
+    if len(payload) < prev_n and not force:
+        print("\n" + "!" * 62)
+        print(f"  已中止：這次只有 {len(payload)} 個彩種有資料，上次是 {prev_n} 個。")
+        print(f"  有資料的：{'、'.join(v['name'] for v in payload.values()) or '（無）'}")
+        print("  這通常代表抓取被擋或網路異常，不是真的沒開獎。")
+        print("  為避免把完整的網站蓋成殘缺版本，這次不重新產生網頁。")
+        print("  確定要覆蓋請加參數 --force-html。")
+        print("!" * 62)
+        return False
+
     data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     html = HTML_TMPL.replace("/*__DATA__*/", data).replace(
         "__BUILT__", dt.datetime.now().strftime("%Y-%m-%d %H:%M"))
     with open(HTML, "w", encoding="utf-8") as f:
         f.write(html)
+    con.execute("INSERT OR REPLACE INTO meta(key,val) VALUES('html_games',?)",
+                (str(len(payload)),))
+    con.commit()
     print(f"\n  已產生網頁：{HTML}")
-    print(f"  檔案大小：{os.path.getsize(HTML) / 1048576:.1f} MB（資料已內嵌，離線可看）")
+    print(f"  收錄 {len(payload)} 個彩種：{'、'.join(v['name'] for v in payload.values())}")
+    print(f"  檔案大小：{os.path.getsize(HTML) / 1048576:.2f} MB（資料已內嵌，離線可看）")
+    return True
 
 
 HTML_TMPL = r"""<!DOCTYPE html>
@@ -1079,6 +1099,8 @@ def main():
                     help="只抓最近兩個月，供每日自動更新使用（快很多）")
     ap.add_argument("--out", default=None,
                     help="指定產生的網頁檔名，例如 --out index.html")
+    ap.add_argument("--force-html", action="store_true",
+                    help="即使彩種數量減少也強制重新產生網頁")
     a = ap.parse_args()
 
     global INSECURE, RECENT, HTML
@@ -1102,7 +1124,7 @@ def main():
         stats(con); con.close(); return
 
     if a.html:
-        stats(con); build_html(con); con.close(); return
+        stats(con); build_html(con, a.force_html); con.close(); return
 
     if a.probe:
         import ssl as _ssl
@@ -1188,12 +1210,16 @@ def main():
         print(f"      取得 {len(rows):,} 期　({time.time() - t0:.1f}s)\n")
 
     total = stats(con)
-    if total:
-        build_html(con)
+    ok = build_html(con, a.force_html) if total else False
     con.close()
     print("\n" + "=" * 64)
-    print("  完成。開啟「樂透路子圖.html」即可查看。")
+    if ok:
+        print("  完成。開啟「樂透路子圖.html」即可查看。")
+    else:
+        print("  網頁未更新（見上方說明）。原本的網頁維持不變。")
     print("=" * 64)
+    if not ok:
+        sys.exit(2)
 
 
 if __name__ == "__main__":
