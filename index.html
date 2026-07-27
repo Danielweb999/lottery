@@ -103,11 +103,49 @@ tbody tr:hover{background:#f8fafe}
 .sig{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap}
 .sig.ok{background:#e4f2ea;color:#136b47}
 .sig.no{background:#fbe9e6;color:#a8392c}
+.fbox{overflow-x:auto}
+
+/* ══ 手機版面 ══ */
+@media (max-width:760px){
+  body{font-size:14px}
+  .wrap{padding:14px 12px 60px;box-shadow:none}
+  h1{font-size:18px}
+  h2{font-size:15px;margin:24px 0 8px}
+  header{padding-bottom:10px}
+  .tab{padding:8px 12px;font-size:13px}
+  .bar{gap:7px;padding:11px 0 12px}
+  select,.btn{font-size:12.5px;padding:5px 9px}
+
+  /* 資訊欄改成橫置在圖的上方，把整個寬度讓給路子圖 */
+  .road{flex-direction:column}
+  .road .side{flex:1 1 auto;border-right:0;border-bottom:1px solid var(--line);
+    flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:10px 12px}
+  .side .ttl{margin:0;flex:0 0 100%}
+  .side .sub{margin:0;flex:0 0 100%;order:9}
+  .side .cnt{display:inline-flex;justify-content:flex-start;gap:5px;font-size:15px}
+  .side .pct{margin:0;flex:0 0 100%;order:10}
+  .grid-scroll{padding:8px 4px}
+
+  .now{padding:12px 13px}
+  .now .hd{gap:6px}
+  .now .hd b{font-size:15px}
+  .nrow{gap:7px}
+  .nrow .lb{flex:0 0 100%}
+  .nrow .st{flex:0 0 100%}
+  .strip i{width:20px;height:20px;font-size:11px}
+  .arrowhint{flex:0 0 100%}
+
+  .legend{gap:8px 14px;font-size:11.5px;padding:9px 11px}
+  table{font-size:11.5px}
+  th,td{padding:6px 7px}
+  .ball{min-width:20px;padding:1px 4px;font-size:11px}
+  .warn{padding:12px 13px;font-size:12.5px}
+}
 </style></head><body><div class="wrap">
 
 <header><h1>樂透路子圖</h1>
 <span class="tag" id="hdr"></span>
-<span style="font-size:12px;color:var(--mute)">建立於 2026-07-27 14:30 · 資料已內嵌，離線可看</span></header>
+<span style="font-size:12px;color:var(--mute)">建立於 2026-07-27 15:00 · 資料已內嵌，離線可看</span></header>
 
 <div class="tabs" id="tabs"></div>
 
@@ -334,11 +372,14 @@ function render(){
   $("hdr").textContent=`${DATA[CUR].name} · ${DATA[CUR].rows.length.toLocaleString()} 期`;
 }
 
-/* 每次重繪都自動捲到最右邊（最新一期），不必自己拉滑鼠 */
+/* 每次重繪都自動捲到最右邊（最新一期），不必自己拉滑鼠。
+   手機瀏覽器有時在 innerHTML 之後還沒算好寬度，所以多跑兩次確保到位。*/
 function scrollToEnd(){
-  document.querySelectorAll(".grid-scroll").forEach(el=>{
-    el.scrollLeft = el.scrollWidth;
-  });
+  const go=()=>document.querySelectorAll(".grid-scroll")
+    .forEach(el=>{el.scrollLeft=el.scrollWidth;});
+  go();
+  requestAnimationFrame(go);
+  setTimeout(go,120);
 }
 
 function initTabs(){
