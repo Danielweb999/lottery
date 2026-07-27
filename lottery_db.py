@@ -119,6 +119,9 @@ CREATE TABLE IF NOT EXISTS draws (
     PRIMARY KEY (game, draw_id)
 );
 CREATE INDEX IF NOT EXISTS ix_draws ON draws(game, draw_date);
+-- 同一彩種同一天只會開一次獎。有了這個唯一索引，
+-- 即使先後從 pilio 與官方 API 收到同一期（期別編號不同），也只會保留一筆。
+CREATE UNIQUE INDEX IF NOT EXISTS ux_draws_day ON draws(game, draw_date);
 
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, val TEXT);
 """
@@ -354,6 +357,71 @@ def parse_pilio(text, gid, n_main=6):
     return out
 
 
+# ── 台灣彩種的「快速來源」──────────────────────────────
+# 官方 API 的回傳含中獎注數與獎金，要等銷售對帳才會出現，常比開球慢一兩個小時。
+# pilio 只放號碼，公布快得多。所以先用 pilio 補上最新幾期，再讓官方 API 覆蓋
+# （官方那筆有正式期別，會依「同一天只留一筆」的規則取代 pilio 的暫時紀錄）。
+PILIO_TW = {
+    "tw539": ("https://www.pilio.idv.tw/lto539/list.asp", "pick"),
+    "tw649": ("https://www.pilio.idv.tw/ltobig/list.asp", "pick"),
+    "tw3d":  ("https://www.pilio.idv.tw/lto/list3.asp", "digit"),
+    "tw4d":  ("https://www.pilio.idv.tw/lto/list4.asp", "digit"),
+}
+
+
+def parse_pilio_digit(text, gid, ndigits):
+    """三星彩／四星彩：號碼是空格分隔的單碼，後面還跟著「..(開N次)」，
+    那個 N 不可以被當成獎號，所以每段先切到 '..' 為止。"""
+    dates = [m for m in _PILIO_DATE.finditer(text)
+             if 1 <= int(m.group(1)) <= 12 and 1 <= int(m.group(2)) <= 31]
+    out = []
+    for i, dm in enumerate(dates):
+        seg = text[dm.end(): dates[i + 1].start() if i + 1 < len(dates) else len(text)]
+        seg = seg.split("..")[0][:60]
+        digs = re.findall(r"(?<![\d])(\d)(?![\d])", seg)
+        if len(digs) < ndigits:
+            continue
+        main = [int(x) for x in digs[:ndigits]]
+        mm, dd, yy = dm.groups()
+        date = f"20{yy}-{int(mm):02d}-{int(dd):02d}"
+        out.append(mkrow(gid, date, date, main, None))
+    return out
+
+
+def fetch_pilio_tw(gid, g, pages=2):
+    url, kind = PILIO_TW[gid]
+    out = []
+    for p in range(1, pages + 1):
+        try:
+            txt = strip_tags(http(f"{url}?indexpage={p}&orderby=new",
+                                  retries=2, timeout=35))
+        except Exception as e:
+            print(f"      pilio 第 {p} 頁失敗 {e}")
+            break
+        rows = (parse_pilio_digit(txt, gid, g["digits"]) if kind == "digit"
+                else parse_pilio(txt, gid, g["n_main"]))
+        if not rows:
+            break
+        out += rows
+        time.sleep(0.2)
+    if out:
+        newest = max(r["draw_date"] for r in out)
+        print(f"      pilio 取得 {len(out)} 期（最新 {newest}）")
+    return out
+
+
+def fetch_tw(gid, g, years):
+    """台灣彩種：先 pilio 搶快，再用官方 API 補正式期別與歷史。"""
+    rows = []
+    if RECENT and gid in PILIO_TW:
+        try:
+            rows += fetch_pilio_tw(gid, g)
+        except Exception as e:
+            print(f"      pilio 失敗（{e}），改用官方 API")
+    rows += fetch_taiwan(gid, g, years)
+    return rows
+
+
 def fetch_pilio_hk(gid, g, years):
     cutoff = ((dt.date.today() - dt.timedelta(days=45)).isoformat() if RECENT
               else (dt.date.today() - dt.timedelta(days=365 * years + 40)).isoformat())
@@ -548,7 +616,7 @@ def fetch_hk(gid, g, years):
     return fetch_hkjc(gid, g, years)
 
 
-FETCHERS = {"taiwan": fetch_taiwan, "calottery": fetch_ca, "hkjc": fetch_hk}
+FETCHERS = {"taiwan": fetch_tw, "calottery": fetch_ca, "hkjc": fetch_hk}
 
 
 def mkrow(gid, draw_id, date, main, special):
