@@ -196,7 +196,7 @@ def hjson(url, **kw):
 def fetch_taiwan(gid, g, years):
     """台灣彩券官方 API，逐月抓取。"""
     today = dt.date.today()
-    out, empty_streak = [], 0
+    out, empty_streak, fail_streak = [], 0, 0
     months = 2 if RECENT else years * 12
     for k in range(months):
         y, m = today.year, today.month - k
@@ -207,8 +207,15 @@ def fetch_taiwan(gid, g, years):
                f"?month={y}-{m:02d}&pageNum=1&pageSize=50")
         try:
             j = hjson(url)
+            fail_streak = 0
         except Exception as e:
+            fail_streak += 1
             print(f"      {y}-{m:02d} 失敗 {e}")
+            if fail_streak >= 6:
+                print(f"      連續 {fail_streak} 次失敗，判定為被限流，中止此彩種。")
+                print(f"      已取得 {len(out)} 期，稍後再執行即可補齊。")
+                break
+            time.sleep(3 * fail_streak)      # 退讓，給對方喘息
             continue
         c = j.get("content") or {}
         arr = None
