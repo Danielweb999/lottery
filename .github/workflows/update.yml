@@ -22,7 +22,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -41,11 +41,13 @@ jobs:
       - name: 更新資料庫並產生網頁
         run: |
           if [ -f lottery.db ]; then
-            echo "已有資料庫，只抓最近資料"
+            echo "已有資料庫，只抓最近資料（正常情況都走這條）"
             python lottery_db.py --recent --out index.html
           else
-            echo "首次執行，抓取近十年"
-            python lottery_db.py --years 10 --out index.html
+            echo "倉庫裡沒有資料庫，先抓近三年建立基礎"
+            echo "（抓十年容易被來源限流又超過執行時間上限，"
+            echo "  完整歷史請在本機執行「一鍵完成.bat」上傳）"
+            python lottery_db.py --years 3 --out index.html
           fi
 
       - name: 推播開獎速報
