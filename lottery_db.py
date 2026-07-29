@@ -245,125 +245,6 @@ def fetch_taiwan(gid, g, years):
     return out
 
 
-def find_calottery_id(verbose=True):
-    """掃描 calottery 的 DrawGameId，找出 Fantasy 5。錯誤會如實回報，不再吞掉。"""
-    errs = []
-    for gid in range(1, 41):
-        try:
-            j = hjson(f"https://www.calottery.com/api/DrawGameApi/"
-                      f"DrawGamePastDrawResults/{gid}/1/1", retries=1, timeout=20)
-        except Exception as e:
-            errs.append(str(e))
-            if len(errs) >= 3 and len(set(errs)) == 1:
-                # 連續同一種錯誤，代表根本連不上，不必再掃 40 次
-                raise RuntimeError(f"連線失敗（已試 {len(errs)} 次，錯誤相同）：{errs[0]}")
-            continue
-        nm = (j.get("Name") or "").strip()
-        if not nm:
-            continue
-        if verbose:
-            print(f"      id={gid:<3} {nm}")
-        if "fantasy" in nm.lower():
-            return gid, nm
-    if errs:
-        print(f"      （掃描期間有 {len(errs)} 次請求失敗，最後一則：{errs[-1]}）")
-    return None, None
-
-
-def fetch_calottery(gid_key, g, years):
-    cid = g.get("_caid")
-    if cid is None:
-        print("      掃描 DrawGameId …")
-        cid, nm = find_calottery_id()
-        if cid is None:
-            raise RuntimeError("找不到 Fantasy 5 的 DrawGameId")
-        print(f"      找到：id={cid}  {nm}")
-        g["_caid"] = cid
-    need = years * 366
-    out, page, size = [], 1, 100
-    while len(out) < need:
-        j = hjson(f"https://www.calottery.com/api/DrawGameApi/"
-                  f"DrawGamePastDrawResults/{cid}/{page}/{size}")
-        prev = j.get("PreviousDraws") or []
-        if not prev:
-            break
-        for d in prev:
-            wn = d.get("WinningNumbers") or {}
-            nums = []
-            for k in sorted(wn.keys(), key=lambda x: int(x)):
-                v = wn[k]
-                if not v.get("IsSpecial"):
-                    try:
-                        nums.append(int(v["Number"]))
-                    except Exception:
-                        pass
-            if len(nums) != g["n_main"]:
-                continue
-            out.append(mkrow(gid_key, str(d.get("DrawNumber")),
-                             str(d.get("DrawDate", ""))[:10], sorted(nums), None))
-        total = j.get("TotalPreviousDraws") or 0
-        if page * size >= total:
-            break
-        page += 1
-        time.sleep(0.2)
-    return out
-
-
-import re
-
-_TAG = re.compile(r"<[^>]+>")
-_WS = re.compile(r"[ \t　]+")
-
-
-def strip_tags(html):
-    h = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", html)
-    h = re.sub(r"(?i)</(tr|div|p|li|table)>", "\n", h)
-    h = re.sub(r"(?i)</t[dh]>", " ", h)
-    h = _TAG.sub(" ", h)
-    h = (h.replace("&nbsp;", " ").replace("&amp;", "&")
-          .replace("&lt;", "<").replace("&gt;", ">"))
-    return "\n".join(_WS.sub(" ", ln).strip() for ln in h.split("\n"))
-
-
-def _mk(gid, did, date, main, sp):
-    return mkrow(gid, did, date, sorted(main), sp)
-
-
-# ── 六合彩：pilio.idv.tw（表格格式 07/25 26(六) 05, 07, ... | 特別號）──
-# 「(?<!\d)」用來擋掉 下期2026/07/28(二) 這種會被誤判成 26/07 28(二) 的字串
-_PILIO_DATE = re.compile(r"(?<!\d)(\d{1,2})/(\d{1,2})\s*(\d{2})\s*\([日一二三四五六]\)")
-
-
-def parse_pilio(text, gid, n_main=6):
-    """以「日期出現的位置」把整頁切成一段一段，每段代表一期。
-    這樣不管欄位之間有沒有換行都能正確配對，而且特別號的搜尋
-    範圍被下一個日期夾住，不會抓到下一期的號碼。"""
-    nums_re = re.compile(r"(?:\d{1,2}\s*,\s*){%d}\d{1,2}" % (n_main - 1))
-    sp_re = re.compile(r"(?<![\d/])(\d{1,2})(?![\d/])")
-    dates = [m for m in _PILIO_DATE.finditer(text)
-             if 1 <= int(m.group(1)) <= 12 and 1 <= int(m.group(2)) <= 31]
-    out = []
-    for i, dm in enumerate(dates):
-        seg = text[dm.end(): dates[i + 1].start() if i + 1 < len(dates) else len(text)]
-        nm = nums_re.search(seg)
-        if not nm:
-            continue
-        try:
-            main = [int(x) for x in re.sub(r"\s", "", nm.group(0)).split(",")]
-        except Exception:
-            continue
-        if len(main) != n_main or not all(1 <= v <= 49 for v in main):
-            continue
-        sp = None
-        sm = sp_re.search(seg[nm.end(): nm.end() + 40])
-        if sm and 1 <= int(sm.group(1)) <= 49:
-            sp = int(sm.group(1))
-        mm, dd, yy = dm.groups()
-        date = f"20{yy}-{int(mm):02d}-{int(dd):02d}"
-        out.append(_mk(gid, date, date, main, sp))
-    return out
-
-
 # ── 台灣彩種的「快速來源」──────────────────────────────
 # 官方 API 的回傳含中獎注數與獎金，要等銷售對帳才會出現，常比開球慢一兩個小時。
 # pilio 只放號碼，公布快得多。所以先用 pilio 補上最新幾期，再讓官方 API 覆蓋
@@ -418,14 +299,25 @@ def fetch_pilio_tw(gid, g, pages=2):
 
 
 def fetch_tw(gid, g, years):
-    """台灣彩種：先 pilio 搶快，再用官方 API 補正式期別與歷史。"""
-    rows = []
-    if RECENT and gid in PILIO_TW:
+    """台灣四款彩種。
+
+    每日更新（--recent）只用 pilio：它公布得比官方快一兩個小時，
+    而且只要翻一頁，不會被限流。官方 API 的回傳要等銷售對帳才會出現，
+    當日更新根本等不到，所以日常路徑完全不碰它。
+
+    建立完整歷史（--years N）時才用官方 API，因為它有正式期別編號、
+    而且一次能拿一整個月。
+    """
+    if RECENT:
+        if gid not in PILIO_TW:
+            return fetch_taiwan(gid, g, years)
+        return fetch_pilio_tw(gid, g, pages=2)
+    rows = fetch_taiwan(gid, g, years)
+    if gid in PILIO_TW:
         try:
-            rows += fetch_pilio_tw(gid, g)
+            rows += fetch_pilio_tw(gid, g, pages=1)   # 補最新幾期
         except Exception as e:
-            print(f"      pilio 失敗（{e}），改用官方 API")
-    rows += fetch_taiwan(gid, g, years)
+            print(f"      pilio 補最新失敗（{e}），略過")
     return rows
 
 
@@ -508,119 +400,27 @@ def fetch_ca_lotterywang(gid, g, years):
     return out
 
 
-HK_SOURCES = [
-    # (說明, 取得函式)
-    ("GitHub icelam/mark-six-data-visualization",
-     "https://api.github.com/repos/icelam/mark-six-data-visualization/git/trees/main?recursive=1",
-     "https://raw.githubusercontent.com/icelam/mark-six-data-visualization/main/"),
-    ("GitHub kitce/marker",
-     "https://api.github.com/repos/kitce/marker/git/trees/master?recursive=1",
-     "https://raw.githubusercontent.com/kitce/marker/master/"),
-]
+def fetch_hk(gid, g, years):
+    """香港六合彩：只用 pilio。
 
-
-def _hk_parse(obj, gid, g, out, seen):
-    """盡量寬鬆地從各種 JSON 結構裡撈出 (日期, 6 主號, 特別號)。"""
-    if isinstance(obj, list):
-        for x in obj:
-            _hk_parse(x, gid, g, out, seen)
-        return
-    if not isinstance(obj, dict):
-        return
-    date = None
-    for k in ("date", "drawDate", "lotteryDate", "draw_date", "d"):
-        if obj.get(k):
-            date = str(obj[k])[:10].replace("/", "-")
-            break
-    nums = None
-    for k in ("no", "numbers", "nums", "drawNumbers", "number", "n"):
-        v = obj.get(k)
-        if isinstance(v, list) and len(v) >= 6:
-            nums = v
-            break
-        if isinstance(v, str) and ("," in v or "+" in v):
-            parts = [p for p in v.replace("+", ",").split(",") if p.strip().isdigit()]
-            if len(parts) >= 6:
-                nums = parts
-                break
-    if date and nums:
-        try:
-            ints = [int(x) for x in nums][:7]
-        except Exception:
-            ints = None
-        if ints and len(ints) >= 6:
-            sp = None
-            for k in ("sno", "special", "specialNumber", "extra", "s"):
-                if obj.get(k) not in (None, ""):
-                    try:
-                        sp = int(obj[k])
-                    except Exception:
-                        pass
-                    break
-            main = sorted(ints[:6])
-            if sp is None and len(ints) >= 7:
-                sp = ints[6]
-            did = obj.get("id") or obj.get("drawNo") or obj.get("no_") or date
-            key = (date, tuple(main))
-            if key not in seen:
-                seen.add(key)
-                out.append(mkrow(gid, str(did), date, main, sp))
-    for v in obj.values():
-        if isinstance(v, (list, dict)):
-            _hk_parse(v, gid, g, out, seen)
-
-
-def fetch_hkjc(gid, g, years):
-    cutoff = (dt.date.today() - dt.timedelta(days=365 * years + 30)).isoformat()
-    for label, tree_url, raw_base in HK_SOURCES:
-        try:
-            print(f"      嘗試 {label} …")
-            tree = hjson(tree_url, retries=2, timeout=30)
-            files = [t["path"] for t in tree.get("tree", [])
-                     if t.get("path", "").endswith(".json")]
-            files = [f for f in files if "node_modules" not in f][:60]
-            if not files:
-                print("        沒有找到 JSON 檔")
-                continue
-            out, seen = [], set()
-            for f in files:
-                try:
-                    obj = hjson(raw_base + f, retries=1, timeout=30)
-                except Exception:
-                    continue
-                _hk_parse(obj, gid, g, out, seen)
-            out = [r for r in out if r["draw_date"] >= cutoff]
-            if len(out) > 200:
-                print(f"        成功，取得 {len(out):,} 期")
-                return out
-            print(f"        只取得 {len(out)} 期，資料不足")
-        except Exception as e:
-            print(f"        失敗 {e}")
-    raise RuntimeError("所有香港六合彩來源都失敗")
+    原本還留了 GitHub 鏡像當備援，但它從來沒成功過，反而害慘了自己——
+    每日更新時 pilio 只會回傳約 18 期（45 天內），舊程式卻要求「超過 100 期
+    才算成功」，於是把好好的資料丟掉、轉去試那個壞掉的鏡像。
+    六合彩因此從來沒有被自動更新過。
+    """
+    rows = fetch_pilio_hk(gid, g, years)
+    if not rows:
+        raise RuntimeError("pilio 沒有回傳任何六合彩資料")
+    return rows
 
 
 def fetch_ca(gid, g, years):
-    """加州 Fantasy 5：官方 API 若被擋（常見 403），改用樂透王網站。"""
-    try:
-        rows = fetch_calottery(gid, g, years)
-        if rows:
-            return rows
-        print("      官方 API 無資料，改用樂透王")
-    except Exception as e:
-        print(f"      官方 API 不可用（{e}），改用樂透王")
+    """加州 Fantasy 5：只用樂透王。
+
+    官方 calottery API 對台灣的 IP 一律回 403，試幾次都一樣，
+    每次還要浪費時間掃描遊戲代號，因此完全移除。
+    """
     return fetch_ca_lotterywang(gid, g, years)
-
-
-def fetch_hk(gid, g, years):
-    """香港六合彩：優先用 pilio（結構穩定），失敗才試 GitHub 鏡像。"""
-    try:
-        rows = fetch_pilio_hk(gid, g, years)
-        if len(rows) > 100:
-            return rows
-        print(f"      pilio 只取得 {len(rows)} 期，改試 GitHub 鏡像")
-    except Exception as e:
-        print(f"      pilio 失敗（{e}），改試 GitHub 鏡像")
-    return fetch_hkjc(gid, g, years)
 
 
 FETCHERS = {"taiwan": fetch_tw, "calottery": fetch_ca, "hkjc": fetch_hk}
@@ -1222,8 +1022,6 @@ def main():
                              "Daily539Result?month=2026-07&pageNum=1&pageSize=1"),
             ("台灣彩券 大樂透", "https://api.taiwanlottery.com/TLCAPIWeB/Lottery/"
                                 "Lotto649Result?month=2026-06&pageNum=1&pageSize=1"),
-            ("加州官方(常被擋)", "https://www.calottery.com/api/DrawGameApi/"
-                                 "DrawGamePastDrawResults/8/1/1"),
             ("樂透王 加州F5", "https://www.lotterywang.com/lottoCA5/year/2026"),
             ("pilio 六合彩", "https://www.pilio.idv.tw/ltohk/list.asp"
                              "?indexpage=1&orderby=new"),
