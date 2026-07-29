@@ -245,6 +245,66 @@ def fetch_taiwan(gid, g, years):
     return out
 
 
+# ── HTML 解析共用工具 ──────────────────────────────────
+# 這幾個是所有網頁解析器都會用到的東西，缺一個就全部掛掉。
+import re
+
+_TAG = re.compile(r"<[^>]+>")
+_WS = re.compile(r"[ \t　]+")
+
+
+def strip_tags(html):
+    """把 HTML 變成純文字，並在列與欄的邊界留下換行／空白。"""
+    h = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", html)
+    h = re.sub(r"(?i)</(tr|div|p|li|table)>", "\n", h)
+    h = re.sub(r"(?i)</t[dh]>", " ", h)
+    h = _TAG.sub(" ", h)
+    h = (h.replace("&nbsp;", " ").replace("&amp;", "&")
+          .replace("&lt;", "<").replace("&gt;", ">"))
+    return "\n".join(_WS.sub(" ", ln).strip() for ln in h.split("\n"))
+
+
+def _mk(gid, did, date, main, sp):
+    return mkrow(gid, did, date, sorted(main), sp)
+
+
+# 「(?<!\d)」用來擋掉 下期2026/07/28(二) 這種會被誤判成 26/07 28(二) 的字串
+_PILIO_DATE = re.compile(r"(?<!\d)(\d{1,2})/(\d{1,2})\s*(\d{2})\s*\([日一二三四五六]\)")
+
+
+def parse_pilio(text, gid, n_main=6):
+    """pilio 的號碼列表（539／大樂透／六合彩共用格式）。
+
+    以「日期出現的位置」把整頁切成一段一段，每段代表一期。這樣不管欄位
+    之間有沒有換行都能正確配對，而且特別號的搜尋範圍被下一個日期夾住，
+    不會抓到下一期的號碼。
+    """
+    nums_re = re.compile(r"(?:\d{1,2}\s*,\s*){%d}\d{1,2}" % (n_main - 1))
+    sp_re = re.compile(r"(?<![\d/])(\d{1,2})(?![\d/])")
+    dates = [m for m in _PILIO_DATE.finditer(text)
+             if 1 <= int(m.group(1)) <= 12 and 1 <= int(m.group(2)) <= 31]
+    out = []
+    for i, dm in enumerate(dates):
+        seg = text[dm.end(): dates[i + 1].start() if i + 1 < len(dates) else len(text)]
+        nm = nums_re.search(seg)
+        if not nm:
+            continue
+        try:
+            main = [int(x) for x in re.sub(r"\s", "", nm.group(0)).split(",")]
+        except Exception:
+            continue
+        if len(main) != n_main or not all(1 <= v <= 49 for v in main):
+            continue
+        sp = None
+        sm = sp_re.search(seg[nm.end(): nm.end() + 40])
+        if sm and 1 <= int(sm.group(1)) <= 49:
+            sp = int(sm.group(1))
+        mm, dd, yy = dm.groups()
+        date = f"20{yy}-{int(mm):02d}-{int(dd):02d}"
+        out.append(_mk(gid, date, date, main, sp))
+    return out
+
+
 # ── 台灣彩種的「快速來源」──────────────────────────────
 # 官方 API 的回傳含中獎注數與獎金，要等銷售對帳才會出現，常比開球慢一兩個小時。
 # pilio 只放號碼，公布快得多。所以先用 pilio 補上最新幾期，再讓官方 API 覆蓋
