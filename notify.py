@@ -340,7 +340,40 @@ def save_state(s):
               ensure_ascii=False, indent=1, sort_keys=True)
 
 
+# ── 執行記錄 ──────────────────────────────────────────────
+# 設定環境變數 LOTTERY_LOG 後，畫面上的所有訊息會同時寫入該檔案，
+# 這樣出問題時不必請使用者複製貼上，直接看檔案就知道發生什麼事。
+class _Tee:
+    def __init__(self, stream, path):
+        self.stream = stream
+        self.fh = open(path, "a", encoding="utf-8")
+
+    def write(self, s):
+        self.stream.write(s)
+        self.fh.write(s)
+        self.fh.flush()
+
+    def flush(self):
+        self.stream.flush()
+        self.fh.flush()
+
+
+def _start_log(tag):
+    p = os.environ.get("LOTTERY_LOG")
+    if not p:
+        return
+    try:
+        sys.stdout = _Tee(sys.stdout, p)
+        sys.stderr = sys.stdout
+        import datetime as _d
+        tp = _d.datetime.now(_d.timezone(_d.timedelta(hours=8)))
+        print(f"\n{'#' * 66}\n#  {tag}　{tp:%Y-%m-%d %H:%M:%S} 台北\n{'#' * 66}")
+    except Exception:
+        pass
+
+
 def main():
+    _start_log("推播 notify.py")
     ap = argparse.ArgumentParser()
     ap.add_argument("--webhook", default=None)
     ap.add_argument("--test", action="store_true", help="忽略已通知紀錄，強制產生")

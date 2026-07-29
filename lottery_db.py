@@ -965,7 +965,40 @@ initTabs();initYears();render();
 
 # ─────────────────────────── 主流程 ───────────────────────────
 
+# ── 執行記錄 ──────────────────────────────────────────────
+# 設定環境變數 LOTTERY_LOG 後，畫面上的所有訊息會同時寫入該檔案，
+# 這樣出問題時不必請使用者複製貼上，直接看檔案就知道發生什麼事。
+class _Tee:
+    def __init__(self, stream, path):
+        self.stream = stream
+        self.fh = open(path, "a", encoding="utf-8")
+
+    def write(self, s):
+        self.stream.write(s)
+        self.fh.write(s)
+        self.fh.flush()
+
+    def flush(self):
+        self.stream.flush()
+        self.fh.flush()
+
+
+def _start_log(tag):
+    p = os.environ.get("LOTTERY_LOG")
+    if not p:
+        return
+    try:
+        sys.stdout = _Tee(sys.stdout, p)
+        sys.stderr = sys.stdout
+        import datetime as _d
+        tp = _d.datetime.now(_d.timezone(_d.timedelta(hours=8)))
+        print(f"\n{'#' * 66}\n#  {tag}　{tp:%Y-%m-%d %H:%M:%S} 台北\n{'#' * 66}")
+    except Exception:
+        pass
+
+
 def main():
+    _start_log("抓取資料 lottery_db.py")
     ap = argparse.ArgumentParser()
     ap.add_argument("--years", type=int, default=10)
     ap.add_argument("--only", default=None)
@@ -1071,20 +1104,38 @@ def main():
     todo = [a.only] if a.only else list(GAMES)
     print(f"  抓取近 {a.years} 年，共 {len(todo)} 個彩種\n")
 
+    report = []
     for gid in todo:
         g = GAMES.get(gid)
         if not g:
             print(f"  未知彩種 {gid}"); continue
-        print(f"  ● {g['name']}")
+        before = con.execute(
+            "SELECT MAX(draw_date), COUNT(*) FROM draws WHERE game=?", (gid,)).fetchone()
+        print(f"  ● {g['name']}　（目前最新 {before[0] or '無'}）")
         t0 = time.time()
         try:
             rows = FETCHERS[g["src"]](gid, g, a.years)
         except Exception as e:
-            print(f"      失敗：{e}\n")
+            print(f"      ✘ 失敗：{e}\n")
+            report.append((g["name"], before[0], before[0], 0, f"失敗：{e}"))
             continue
         rows = [r for r in rows if r["draw_date"]]
         upsert(con, rows); con.commit()
-        print(f"      取得 {len(rows):,} 期　({time.time() - t0:.1f}s)\n")
+        after = con.execute(
+            "SELECT MAX(draw_date), COUNT(*) FROM draws WHERE game=?", (gid,)).fetchone()
+        added = after[1] - before[1]
+        note = "有新資料" if after[0] != before[0] else "已是最新"
+        print(f"      抓回 {len(rows):,} 期，新增 {added} 期，"
+              f"最新 {before[0] or '無'} → {after[0]}　{note}"
+              f"　({time.time() - t0:.1f}s)\n")
+        report.append((g["name"], before[0], after[0], added, note))
+
+    print("  " + "─" * 62)
+    print(f"  {'彩種':<16}{'更新前':<13}{'更新後':<13}{'新增':>5}  狀態")
+    print("  " + "─" * 62)
+    for nm, b, af, ad, note in report:
+        print(f"  {nm:<16}{str(b or '無'):<13}{str(af or '無'):<13}{ad:>5}  {note}")
+    print("  " + "─" * 62)
 
     total = stats(con)
     ok = build_html(con, a.force_html) if total else False
