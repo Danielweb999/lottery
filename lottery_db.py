@@ -611,6 +611,24 @@ def build_html(con, force=False):
     print(f"\n  已產生網頁：{HTML}")
     print(f"  收錄 {len(payload)} 個彩種：{'、'.join(v['name'] for v in payload.values())}")
     print(f"  檔案大小：{os.path.getsize(HTML) / 1048576:.2f} MB（資料已內嵌，離線可看）")
+
+    # 狀態檔：純文字、極小，用來從外部確認「網頁裡實際裝了哪些資料」。
+    # 網頁的資料藏在 <script> 裡，從外面看不到，出問題時很難判斷是資料沒進來
+    # 還是瀏覽器快取。有了這個檔，一眼就知道。
+    tp = dt.datetime.now(dt.timezone(dt.timedelta(hours=8)))
+    st = {"built_at_taipei": tp.strftime("%Y-%m-%d %H:%M:%S"),
+          "games": {gid: {"name": v["name"],
+                          "latest_date": v["rows"][-1][1],
+                          "latest_numbers": v["rows"][-1][2],
+                          "special": v["rows"][-1][3],
+                          "count": len(v["rows"])}
+                    for gid, v in payload.items()}}
+    sp = os.path.join(os.path.dirname(HTML) or ".", "status.json")
+    with open(sp, "w", encoding="utf-8") as f:
+        json.dump(st, f, ensure_ascii=False, indent=1)
+    print(f"  狀態檔：{os.path.basename(sp)}")
+    for gid, v in st["games"].items():
+        print(f"    {v['name']:<16}{v['latest_date']}   {v['latest_numbers']}")
     return True
 
 
