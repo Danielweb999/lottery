@@ -2,23 +2,19 @@ name: 每日自動更新與推播
 
 on:
   schedule:
-    # GitHub 使用 UTC。免費方案的排程是「盡力而為」，實測會延後 2-3 小時、
-    # 而且高頻率排程更容易被整批丟棄（官方文件明講）。所以這裡刻意排少一點，
-    # 只保留幾個關鍵時間點，讓它比較願意執行。
-    # 真正要準時，得靠外部觸發（見「準時推播說明.html」）。
-    - cron: "15 13 * * *"    # 台北 21:15 — 台灣四款 20:30 開獎後
-    - cron: "45 13 * * *"    # 台北 21:45
-    - cron: "30 14 * * *"    # 台北 22:30 — 香港六合彩 21:30 開獎後
-    - cron: "30 15 * * *"    # 台北 23:30 — 補公布較慢的
-    - cron: "0 4 * * *"      # 台北 12:00 — 加州 Fantasy 5
-    - cron: "0 6 * * *"      # 台北 14:00 — 補加州
-  repository_dispatch:      # 外部排程服務（cron-job.org）用這個準時觸發
+    # GitHub 自己的排程是「盡力而為」，實測會延後 2-3 小時甚至整批跳過，
+    # 所以這裡只當備援。準時觸發靠外部服務（cron-job.org）打 repository_dispatch。
+    - cron: "15 13 * * *"    # 台北 21:15
+    - cron: "30 14 * * *"    # 台北 22:30
+    - cron: "0 4 * * *"      # 台北 12:00
+  repository_dispatch:      # 外部排程服務用這個準時觸發
     types: [tick]
   workflow_dispatch:        # 也可以到 Actions 分頁手動按一下
 
 permissions:
   contents: write
 
+# 同一時間只跑一個，後來的排隊等待。
 concurrency:
   group: lottery-update
   cancel-in-progress: false
@@ -44,13 +40,12 @@ jobs:
 
       - name: 更新資料庫並產生網頁
         run: |
+          touch .nojekyll
           if [ -f lottery.db ]; then
             echo "已有資料庫，只抓最近資料（正常情況都走這條）"
             python lottery_db.py --recent --out index.html
           else
             echo "倉庫裡沒有資料庫，先抓近三年建立基礎"
-            echo "（抓十年容易被來源限流又超過執行時間上限，"
-            echo "  完整歷史請在本機執行「一鍵完成.bat」上傳）"
             python lottery_db.py --years 3 --out index.html
           fi
 
@@ -71,7 +66,19 @@ jobs:
           git add -A
           if git diff --staged --quiet; then
             echo "沒有新資料，不需提交"
-          else
-            git commit -m "自動更新 $(TZ=Asia/Taipei date +'%Y-%m-%d %H:%M')"
-            git push
+            exit 0
           fi
+          git commit -m "自動更新 $(TZ=Asia/Taipei date +'%Y-%m-%d %H:%M')"
+          # 多個觸發可能同時執行，推送時遠端已被別人改過就會被拒。
+          # 先把遠端變更接上去再重試，不要直接失敗。
+          for i in 1 2 3 4 5; do
+            if git push; then
+              echo "推送成功（第 $i 次嘗試）"
+              exit 0
+            fi
+            echo "推送被拒，先同步遠端再試（第 $i 次）"
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+            sleep $((i * 5))
+          done
+          echo "推送連續 5 次失敗"
+          exit 1
