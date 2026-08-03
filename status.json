@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-08-03 11:01:08",
+ "built_at_taipei": "2026-08-03 11:02:53",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
@@ -16,16 +16,16 @@
   },
   "ca_f5": {
    "name": "加州 Fantasy 5",
-   "latest_date": "2026-08-02",
+   "latest_date": "2026-08-03",
    "latest_numbers": [
     2,
-    15,
-    21,
-    25,
-    29
+    3,
+    20,
+    24,
+    27
    ],
    "special": null,
-   "count": 1615
+   "count": 1616
   },
   "tw649": {
    "name": "台灣大樂透",

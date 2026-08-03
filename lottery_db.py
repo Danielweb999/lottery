@@ -600,9 +600,14 @@ def build_html(con, force=False):
         print("!" * 62)
         return False
 
+    # 一律用台北時間。以前這裡用 datetime.now()（機器的本地時間），
+    # 在自己電腦上剛好是台北時間看不出問題，但雲端主機是 UTC，
+    # 網頁上就會顯示成 8 小時前，而且跟 status.json 的台北時間永遠對不起來。
+    tp = dt.datetime.now(dt.timezone(dt.timedelta(hours=8)))
+
     data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     html = HTML_TMPL.replace("/*__DATA__*/", data).replace(
-        "__BUILT__", dt.datetime.now().strftime("%Y-%m-%d %H:%M"))
+        "__BUILT__", tp.strftime("%Y-%m-%d %H:%M"))
     with open(HTML, "w", encoding="utf-8") as f:
         f.write(html)
     con.execute("INSERT OR REPLACE INTO meta(key,val) VALUES('html_games',?)",
@@ -615,7 +620,7 @@ def build_html(con, force=False):
     # 狀態檔：純文字、極小，用來從外部確認「網頁裡實際裝了哪些資料」。
     # 網頁的資料藏在 <script> 裡，從外面看不到，出問題時很難判斷是資料沒進來
     # 還是瀏覽器快取。有了這個檔，一眼就知道。
-    tp = dt.datetime.now(dt.timezone(dt.timedelta(hours=8)))
+    # 時間必須跟上面網頁裡的 __BUILT__ 完全同一個，否則前端會誤判成快取。
     st = {"built_at_taipei": tp.strftime("%Y-%m-%d %H:%M:%S"),
           "games": {gid: {"name": v["name"],
                           "latest_date": v["rows"][-1][1],
@@ -1040,12 +1045,12 @@ $("lang").onclick=e=>{LANG=LANG==="zh"?"en":"zh";
   e.target.textContent="文字："+(LANG==="zh"?"中文":"英文");render();};
 initTabs();initYears();render();
 
-// ── 快取偵測 ───────────────────────────────────────────────
-// 瀏覽器（和 GitHub 的 CDN）會把整頁存起來重複使用，常常造成
-// 「網站明明更新了，重新整理還是舊的」。這段去讀同一個資料夾裡的
-// status.json（加時間戳跳過快取），如果它的建立時間跟這一頁不一樣，
-// 就代表你看到的是舊快取，直接在畫面下方講清楚該怎麼做。
-// 本機用 file:// 開啟時讀不到，會安靜略過。
+// ── 自動取得最新版 ─────────────────────────────────────────
+// GitHub 的 CDN 會把整頁存起來重複使用約十分鐘，這段期間就算按 F5
+// 甚至 Ctrl+F5 都沒有用——你的瀏覽器問的還是同一個網址，CDN 回你同一份。
+// 唯一能繞過的方法是換一個網址，所以這裡在網址後面加一個版本參數，
+// 自動重載一次就會拿到最新的頁面，不必你動手。
+// 用版本參數本身當防呆：重載後參數已等於線上版本，就不會再重載第二次。
 (function(){
   try{
     fetch("status.json?t="+Date.now(),{cache:"no-store"})
@@ -1054,12 +1059,21 @@ initTabs();initYears();render();
         var mine="__BUILT__";
         var live=(s.built_at_taipei||"").slice(0,16);
         if(!live||live===mine)return;
+        var tried=new URLSearchParams(location.search).get("v");
+        if(tried!==live){
+          location.replace(location.pathname+"?v="+encodeURIComponent(live));
+          return;
+        }
+        // 已經換過網址還是舊的（極少見，通常是離線或 CDN 還沒同步）。
+        // 只在右下角放一個小提示，不要擋住畫面。
         var b=document.createElement("div");
-        b.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:99;"+
-          "background:#c8352b;color:#fff;padding:11px 16px;font-size:14px;"+
-          "text-align:center;line-height:1.5";
-        b.textContent="你現在看到的是瀏覽器存的舊版（"+mine+"）。"+
-          "網站上已經是 "+live+" 的資料 — 請按 Ctrl+F5 重新整理。";
+        b.style.cssText="position:fixed;right:14px;bottom:14px;z-index:99;"+
+          "background:#fff;color:var(--mute);border:1px solid var(--line);"+
+          "border-radius:8px;padding:8px 12px;font-size:12px;line-height:1.5;"+
+          "box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:280px";
+        b.textContent="線上已有 "+live+" 的版本，稍候幾分鐘再開就會是最新的。";
+        b.title="點一下關閉";
+        b.onclick=function(){b.remove();};
         document.body.appendChild(b);
       })
       .catch(function(){});
