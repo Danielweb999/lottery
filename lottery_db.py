@@ -635,6 +635,7 @@ def build_html(con, force=False):
 HTML_TMPL = r"""<!DOCTYPE html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <title>樂透路子圖</title>
 <style>
 :root{--blue:#1f4fd8;--red:#c8352b;--green:#14875a;--ink:#1c1c1e;--mute:#6f6f77;
@@ -1038,6 +1039,32 @@ $("style").onclick=e=>{document.body.classList.toggle("hollow");
 $("lang").onclick=e=>{LANG=LANG==="zh"?"en":"zh";
   e.target.textContent="文字："+(LANG==="zh"?"中文":"英文");render();};
 initTabs();initYears();render();
+
+// ── 快取偵測 ───────────────────────────────────────────────
+// 瀏覽器（和 GitHub 的 CDN）會把整頁存起來重複使用，常常造成
+// 「網站明明更新了，重新整理還是舊的」。這段去讀同一個資料夾裡的
+// status.json（加時間戳跳過快取），如果它的建立時間跟這一頁不一樣，
+// 就代表你看到的是舊快取，直接在畫面下方講清楚該怎麼做。
+// 本機用 file:// 開啟時讀不到，會安靜略過。
+(function(){
+  try{
+    fetch("status.json?t="+Date.now(),{cache:"no-store"})
+      .then(function(r){return r.json();})
+      .then(function(s){
+        var mine="__BUILT__";
+        var live=(s.built_at_taipei||"").slice(0,16);
+        if(!live||live===mine)return;
+        var b=document.createElement("div");
+        b.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:99;"+
+          "background:#c8352b;color:#fff;padding:11px 16px;font-size:14px;"+
+          "text-align:center;line-height:1.5";
+        b.textContent="你現在看到的是瀏覽器存的舊版（"+mine+"）。"+
+          "網站上已經是 "+live+" 的資料 — 請按 Ctrl+F5 重新整理。";
+        document.body.appendChild(b);
+      })
+      .catch(function(){});
+  }catch(e){}
+})();
 </script></body></html>"""
 
 
