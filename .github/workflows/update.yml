@@ -24,19 +24,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      # v5 / v6 才是跑在 Node 24 上，用舊版會一直收到「Node.js 20 is
+      # deprecated」的警告信。功能完全相同，只是換掉底層執行環境。
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
+      # 這兩步是跟外部伺服器要東西，偶爾會碰到對方忙線。
+      # 以前只要碰一次就整個流程失敗、寄一封失敗信給你，其實重試就好。
       - name: 安裝中文字型
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq fonts-noto-cjk
+          for i in 1 2 3; do
+            sudo apt-get update -qq &&             sudo apt-get install -y -qq fonts-noto-cjk &&             echo "字型安裝完成" && exit 0
+            echo "字型來源忙線，10 秒後重試（第 $i 次）"
+            sleep 10
+          done
+          echo "::warning::字型裝不起來，改用系統預設字型（圖片中文可能變方框）"
+          exit 0
 
       - name: 安裝相依套件
-        run: python -m pip install --quiet --upgrade certifi pillow
+        run: |
+          for i in 1 2 3; do
+            python -m pip install --quiet --upgrade certifi pillow && exit 0
+            echo "套件來源忙線，10 秒後重試（第 $i 次）"
+            sleep 10
+          done
+          echo "套件安裝連續失敗"
+          exit 1
 
       - name: 更新資料庫並產生網頁
         run: |
@@ -49,14 +65,15 @@ jobs:
             python lottery_db.py --years 3 --out index.html
           fi
 
+      # 推播失敗不該讓整個流程算失敗——資料還是要照樣存檔上傳。
       - name: 推播開獎速報
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           if [ -z "$DISCORD_WEBHOOK" ]; then
             echo "尚未設定 DISCORD_WEBHOOK，略過推播"
-          else
-            python notify.py
+          elif ! python notify.py; then
+            echo "::warning::推播失敗，但資料已更新，繼續往下提交"
           fi
 
       - name: 提交變更
@@ -82,3 +99,31 @@ jobs:
           done
           echo "推送連續 5 次失敗"
           exit 1
+
+      # 真的失敗時直接發到 Discord，附上該次執行的連結，
+      # 不必再從一堆 GitHub 通知信裡面找。
+      - name: 失敗時通知
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            exit 0
+          fi
+          python - <<'PY'
+          import json, os, urllib.request
+          nl = chr(10)          # 這段會被寫進 YAML，不能直接用跳脫字元
+          msg = ("⚠ **雲端更新失敗**" + nl
+                 + "打開下面的連結，紅色 ✘ 的那一步就是出問題的地方：" + nl
+                 + os.environ["RUN_URL"])
+          req = urllib.request.Request(
+              os.environ["DISCORD_WEBHOOK"],
+              json.dumps({"content": msg}).encode("utf-8"),
+              {"Content-Type": "application/json"})
+          try:
+              urllib.request.urlopen(req, timeout=30)
+              print("已通知")
+          except Exception as e:
+              print("通知也失敗了：", e)
+          PY
