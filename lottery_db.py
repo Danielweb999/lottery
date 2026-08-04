@@ -715,8 +715,40 @@ def connect():
 
 
 def upsert(con, rows):
+    """寫入開獎資料，並且防止不同來源的期別編號互相打架。
+
+    這張表有兩個唯一性條件：主鍵是（彩種, 期別），另外還有（彩種, 日期）。
+    不同來源對期別的編法不一樣（pilio 用日期當編號、官方與樂透王用正式期別），
+    萬一某個來源給的期別編號在資料庫裡剛好屬於「另一天」，
+    INSERT OR REPLACE 會同時撞到兩個索引，把那另外一天的資料一起刪掉。
+
+    這不是假設：加了樂透王備援之後，539／三星／四星各無聲無息少了一筆。
+    所以這裡先檢查，發現期別會撞到別天時，就沿用當天原本的編號。
+    """
     if not rows:
         return 0
+
+    games = {r["game"] for r in rows}
+    qs = ",".join("?" * len(games))
+    id_owner, day_id = {}, {}
+    for g, did, day in con.execute(
+            f"SELECT game, draw_id, draw_date FROM draws WHERE game IN ({qs})",
+            tuple(games)):
+        id_owner[(g, did)] = day
+        day_id[(g, day)] = did
+
+    seen, safe = set(), []
+    for r in reversed(rows):                      # 同一批有重複時以最後一筆為準
+        key = (r["game"], r["draw_date"])
+        if key in seen:
+            continue
+        seen.add(key)
+        owner = id_owner.get((r["game"], r["draw_id"]))
+        if owner is not None and owner != r["draw_date"]:
+            r = dict(r, draw_id=day_id.get(key, r["draw_date"]))
+        safe.append(r)
+    rows = list(reversed(safe))
+
     cols = ["game", "draw_id", "draw_date", "numbers", "special", "sum_main", "sum_all"]
     con.executemany(
         f"INSERT OR REPLACE INTO draws ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})",
