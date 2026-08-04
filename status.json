@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-08-04 12:20:27",
+ "built_at_taipei": "2026-08-04 12:35:03",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
@@ -84,7 +84,7 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 1,
+   "added": 0,
    "latest": "2026-08-03",
    "source_latest": "2026-08-03"
   },
@@ -92,7 +92,7 @@
    "ok": true,
    "error": null,
    "fetched": 216,
-   "added": 1,
+   "added": 0,
    "latest": "2026-08-04",
    "source_latest": "2026-08-04"
   },
@@ -116,7 +116,7 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 1,
+   "added": 0,
    "latest": "2026-08-03",
    "source_latest": "2026-08-03"
   },
@@ -124,7 +124,7 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 1,
+   "added": 0,
    "latest": "2026-08-03",
    "source_latest": "2026-08-03"
   }
