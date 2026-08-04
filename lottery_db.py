@@ -131,6 +131,12 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, val TEXT);
 
 INSECURE = False        # --insecure 時為 True
 RECENT = False          # --recent：只抓最近的資料，供每日自動更新使用
+
+# 每個彩種這一次抓取的結果，會一併寫進 status.json。
+# 用意：雲端執行的畫面訊息在 GitHub Actions 的記錄裡，從外面看不到，
+# 先前只能靠猜「到底是來源沒更新、還是雲端抓不到」。寫進狀態檔之後，
+# 打開網址就能直接看到每個來源成功與否、抓到幾期、最新是哪一天。
+FETCH_REPORT = {}
 _CTX = None
 _CTX_NOTE = ""
 
@@ -474,13 +480,68 @@ def fetch_hk(gid, g, years):
     return rows
 
 
-def fetch_ca(gid, g, years):
-    """加州 Fantasy 5：只用樂透王。
+def fetch_ca_official(gid, g, years):
+    """加州官方 API（DrawGameId 10 = Fantasy 5）。
 
-    官方 calottery API 對台灣的 IP 一律回 403，試幾次都一樣，
-    每次還要浪費時間掃描遊戲代號，因此完全移除。
+    期別編號跟樂透王完全一致（例如 11957 期兩邊都是同一期），
+    但日期基準不同：官方記的是加州當地開獎日，樂透王記的是台灣公布日，
+    剛好晚一天。這裡統一換算成台灣公布日，兩個來源才會合成同一筆，
+    不會在路子圖上變成兩格。
     """
-    return fetch_ca_lotterywang(gid, g, years)
+    n = 60 if RECENT else min(4000, max(400, years * 370))
+    url = ("https://www.calottery.com/api/DrawGameApi/"
+           f"DrawGamePastDrawResults/10/1/{n}")
+    d = json.loads(http(url, retries=2, timeout=45))
+    out = []
+    for it in (d.get("PreviousDraws") or []):
+        wn = it.get("WinningNumbers") or {}
+        try:
+            main = [int(wn[k]["Number"]) for k in sorted(wn, key=lambda x: int(x))
+                    if not wn[k].get("IsSpecial")]
+        except Exception:
+            continue
+        day = (it.get("DrawDate") or "")[:10]
+        if len(main) != g["n_main"] or len(day) != 10:
+            continue
+        try:
+            tw = (dt.date.fromisoformat(day) + dt.timedelta(days=1)).isoformat()
+        except Exception:
+            continue
+        out.append(_mk(gid, str(it.get("DrawNumber") or ""), tw, main, None))
+    return out
+
+
+def fetch_ca(gid, g, years):
+    """加州 Fantasy 5：樂透王為主，官方 API 為備援。
+
+    這兩個來源剛好互補，所以兩個都留：
+      樂透王    台灣連得到；但雲端主機（GitHub 美國機房）不一定連得到。
+      官方 API  台灣 IP 會被 403；從美國機房反而正常。
+    只要其中一邊活著就抓得到，不會再出現「本機更新得到、雲端永遠不更新」。
+    """
+    rows, why = [], []
+    try:
+        rows = fetch_ca_lotterywang(gid, g, years)
+    except Exception as e:
+        why.append(f"樂透王：{e}")
+        print(f"      樂透王失敗：{e}")
+    newest = max((r["draw_date"] for r in rows), default=None)
+
+    try:
+        off = fetch_ca_official(gid, g, years)
+    except Exception as e:
+        off = []
+        why.append(f"官方：{e}")
+        print(f"      官方 API 失敗：{e}")
+    if off:
+        extra = [r for r in off if newest is None or r["draw_date"] > newest]
+        print(f"      官方 API {len(off):,} 期"
+              + (f"，其中 {len(extra)} 期比樂透王還新" if extra else "（無更新的）"))
+        rows += off
+
+    if not rows:
+        raise RuntimeError("兩個來源都失敗 — " + "；".join(why))
+    return rows
 
 
 FETCHERS = {"taiwan": fetch_tw, "calottery": fetch_ca, "hkjc": fetch_hk}
@@ -628,6 +689,8 @@ def build_html(con, force=False):
                           "special": v["rows"][-1][3],
                           "count": len(v["rows"])}
                     for gid, v in payload.items()}}
+    if FETCH_REPORT:
+        st["fetch"] = FETCH_REPORT
     sp = os.path.join(os.path.dirname(HTML) or ".", "status.json")
     with open(sp, "w", encoding="utf-8") as f:
         json.dump(st, f, ensure_ascii=False, indent=1)
@@ -1237,12 +1300,18 @@ def main():
         except Exception as e:
             print(f"      ✘ 失敗：{e}\n")
             report.append((g["name"], before[0], before[0], 0, f"失敗：{e}"))
+            FETCH_REPORT[gid] = {"ok": False, "error": str(e)[:200],
+                                 "fetched": 0, "added": 0, "latest": before[0]}
             continue
         rows = [r for r in rows if r["draw_date"]]
         upsert(con, rows); con.commit()
         after = con.execute(
             "SELECT MAX(draw_date), COUNT(*) FROM draws WHERE game=?", (gid,)).fetchone()
         added = after[1] - before[1]
+        FETCH_REPORT[gid] = {"ok": True, "error": None, "fetched": len(rows),
+                             "added": added, "latest": after[0],
+                             "source_latest": max((r["draw_date"] for r in rows),
+                                                  default=None)}
         note = "有新資料" if after[0] != before[0] else "已是最新"
         print(f"      抓回 {len(rows):,} 期，新增 {added} 期，"
               f"最新 {before[0] or '無'} → {after[0]}　{note}"

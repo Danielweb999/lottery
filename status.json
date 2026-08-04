@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-08-04 12:15:50",
+ "built_at_taipei": "2026-08-04 12:20:27",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
@@ -16,16 +16,16 @@
   },
   "ca_f5": {
    "name": "加州 Fantasy 5",
-   "latest_date": "2026-08-03",
+   "latest_date": "2026-08-04",
    "latest_numbers": [
-    2,
-    3,
-    20,
+    8,
+    16,
+    19,
     24,
-    27
+    32
    ],
    "special": null,
-   "count": 1616
+   "count": 1617
   },
   "tw649": {
    "name": "台灣大樂透",
@@ -77,6 +77,56 @@
    ],
    "special": null,
    "count": 3139
+  }
+ },
+ "fetch": {
+  "tw539": {
+   "ok": true,
+   "error": null,
+   "fetched": 46,
+   "added": 1,
+   "latest": "2026-08-03",
+   "source_latest": "2026-08-03"
+  },
+  "ca_f5": {
+   "ok": true,
+   "error": null,
+   "fetched": 216,
+   "added": 1,
+   "latest": "2026-08-04",
+   "source_latest": "2026-08-04"
+  },
+  "tw649": {
+   "ok": true,
+   "error": null,
+   "fetched": 46,
+   "added": 0,
+   "latest": "2026-07-31",
+   "source_latest": "2026-07-31"
+  },
+  "hk6": {
+   "ok": true,
+   "error": null,
+   "fetched": 18,
+   "added": 0,
+   "latest": "2026-08-01",
+   "source_latest": "2026-08-01"
+  },
+  "tw3d": {
+   "ok": true,
+   "error": null,
+   "fetched": 46,
+   "added": 1,
+   "latest": "2026-08-03",
+   "source_latest": "2026-08-03"
+  },
+  "tw4d": {
+   "ok": true,
+   "error": null,
+   "fetched": 46,
+   "added": 1,
+   "latest": "2026-08-03",
+   "source_latest": "2026-08-03"
   }
  }
 }
