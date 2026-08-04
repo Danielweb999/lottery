@@ -375,9 +375,17 @@ def fetch_tw(gid, g, years):
     而且一次能拿一整個月。
     """
     if RECENT:
-        if gid not in PILIO_TW:
-            return fetch_taiwan(gid, g, years)
-        return fetch_pilio_tw(gid, g, pages=2)
+        try:
+            rows = (fetch_pilio_tw(gid, g, pages=2) if gid in PILIO_TW
+                    else fetch_taiwan(gid, g, years))
+        except Exception as e:
+            print(f"      主來源失敗：{e}")
+            rows = []
+        rows = with_lw_backup(rows, gid, g, years)
+        if not rows:
+            raise RuntimeError("pilio 與樂透王都取不到資料")
+        return rows
+
     rows = fetch_taiwan(gid, g, years)
     if gid in PILIO_TW:
         try:
@@ -420,50 +428,140 @@ def fetch_pilio_hk(gid, g, years):
     return out
 
 
-# ── 加州 Fantasy 5：lotterywang.com（依年份分頁）──
-def parse_lotterywang(text, gid, n_main=5):
-    pat = re.compile(
-        r"(\d{4})\.(\d{1,2})\.(\d{1,2})\s*\([日一二三四五六]\)[^0-9]{0,40}?"
-        r"(\d{3,7})\s*期((?:\s*\d{1,2}\b){%d})" % n_main)
+# ── 樂透王 lotterywang.com：六個彩種全都有，當作共同備援 ──
+#
+# 為什麼要有備援：先前每個彩種都只靠單一網站，那個網站改版、擋 IP、
+# 或當天沒更新，該彩種就整個停擺，只能等人手動處理。樂透王六款全收，
+# 版型也一致，剛好可以當所有彩種的第二來源。
+# 頁面版型（六款相同）：
+#     2026.08.01 (六)          ← 日期
+#     26｜083 期               ← 期別（六合彩會有 ｜ 分隔）
+#     01 07 16 22 32 37 23     ← 號碼，有特別號的話排最後
+# 而且每一期會重複輸出兩次（響應式版型的兩套 DOM），要去重。
+LW_PATH = {"tw539": "lotto539", "tw649": "lotto649", "tw3d": "lotto3d",
+           "tw4d": "lotto4d", "hk6": "lottoHK", "ca_f5": "lottoCA5"}
+
+_LW_DATE = re.compile(r"(\d{4})\.(\d{1,2})\.(\d{1,2})\s*\([日一二三四五六]\)")
+
+
+def parse_lw(text, gid, g):
+    """通用解析：先用日期把整頁切段，再在每段裡取「期」後面的號碼。
+
+    用切段而不是一條大正規表示式，是因為日期與號碼之間的空白、
+    期別的分隔符號各款不一樣，硬寫成單一規則很容易漏掉某一款。
+    """
+    if g.get("kind") == "digit":
+        need, lo, hi = g["digits"], 0, 9
+    else:
+        need = g["n_main"] + (1 if g.get("has_special") else 0)
+        lo, hi = 1, g["pool"]
+
+    marks = list(_LW_DATE.finditer(text))
     out, seen = [], set()
-    for m in pat.finditer(text):
-        y, mo, d, period, nums = m.groups()
-        try:
-            main = [int(x) for x in nums.split()]
-        except Exception:
+    for i, m in enumerate(marks):
+        end = marks[i + 1].start() if i + 1 < len(marks) else len(text)
+        seg = text[m.end():end]
+        k = seg.find("期")
+        if k < 0:
             continue
-        if len(main) != n_main or not all(1 <= v <= 39 for v in main):
+        pid = re.sub(r"\D", "", seg[:k])[-12:]      # 期別只留數字
+        toks = re.findall(r"\d{1,2}", seg[k + 1:])  # 「期」後面緊接著就是號碼
+        if len(toks) < need:
             continue
-        if period in seen:          # 該站每筆會重複輸出兩次（RWD 版型）
+        v = [int(x) for x in toks[:need]]
+        if not all(lo <= x <= hi for x in v):
             continue
-        seen.add(period)
-        out.append(_mk(gid, period, f"{y}-{int(mo):02d}-{int(d):02d}", main, None))
+        y, mo, d = m.group(1), int(m.group(2)), int(m.group(3))
+        day = f"{y}-{mo:02d}-{d:02d}"
+        if day in seen:                              # 同一期的第二份 DOM
+            continue
+        seen.add(day)
+        if g.get("kind") == "digit":
+            # 三星彩／四星彩是「個十百千」，順序就是答案的一部分，
+            # 千萬不能像其他彩種那樣排序（會把 4 9 1 變成 1 4 9）。
+            out.append(mkrow(gid, pid, day, v, None))
+        elif g.get("has_special"):
+            out.append(_mk(gid, pid, day, v[:-1], v[-1]))
+        else:
+            out.append(_mk(gid, pid, day, v, None))
     return out
 
 
-def fetch_ca_lotterywang(gid, g, years):
-    this_y = dt.date.today().year
-    out, miss = [], 0
-    back = 0 if RECENT else years
-    for y in range(this_y, this_y - back - 1, -1):
-        url = f"https://www.lotterywang.com/lottoCA5/year/{y}"
+def parse_lotterywang(text, gid, n_main=5):
+    """加州 Fantasy 5 的舊介面，內部走上面的通用解析器。
+
+    保留這個名字是為了讓 selftest 測到的就是真正在跑的程式碼——
+    先前有過「測試測的是假的解析器，真的那支壞了卻沒人發現」的教訓。
+    """
+    return parse_lw(text, gid, {"kind": "pick", "n_main": n_main,
+                                "pool": 39, "has_special": False})
+
+
+def fetch_lw(gid, g, years):
+    """從樂透王抓。每日更新只翻首頁（最近十期，一次連線就夠）。"""
+    path = LW_PATH.get(gid)
+    if not path:
+        return []
+    if RECENT:
+        # 年份頁是行之有年、確定可用的路徑，優先用它。
+        # 首頁只列最近十期、比較輕，但版型跟年份頁不完全一樣，
+        # 曾經因此整個解析不到東西，所以只拿來當年份頁失敗時的備胎。
+        y = dt.date.today().year
+        for url in (f"https://www.lotterywang.com/{path}/year/{y}",
+                    f"https://www.lotterywang.com/{path}"):
+            try:
+                rows = parse_lw(strip_tags(http(url, retries=2, timeout=45)), gid, g)
+            except Exception as e:
+                print(f"      樂透王 {url.rsplit('/', 1)[-1]} 失敗：{e}")
+                continue
+            if rows:
+                return rows
+            print(f"      樂透王 {url.rsplit('/', 1)[-1]} 解析不到資料，換下一個位址")
+        return []
+
+    out, miss, this_y = [], 0, dt.date.today().year
+    for y in range(this_y, this_y - years - 1, -1):
         try:
-            rows = parse_lotterywang(strip_tags(http(url, retries=2, timeout=45)),
-                                     gid, g["n_main"])
+            rows = parse_lw(strip_tags(
+                http(f"https://www.lotterywang.com/{path}/year/{y}",
+                     retries=2, timeout=50)), gid, g)
         except Exception as e:
-            print(f"      {y} 年失敗 {e}")
+            print(f"      樂透王 {y} 年失敗 {e}")
             rows = []
         if rows:
-            print(f"      {y} 年 {len(rows):,} 期")
             out += rows
             miss = 0
         else:
             miss += 1
             if miss >= 2:
-                print(f"      {y} 年起無資料，停止回溯")
                 break
         time.sleep(0.3)
     return out
+
+
+def with_lw_backup(rows, gid, g, years):
+    """把樂透王的結果併進來。
+
+    回傳時備援排在前面、主來源排在後面：寫入是 INSERT OR REPLACE，
+    後寫的會蓋前面的，這樣同一期就會以主來源的期別編號為準。
+    """
+    try:
+        extra = fetch_lw(gid, g, years)
+    except Exception as e:
+        print(f"      樂透王備援失敗：{e}")
+        return rows
+    if not extra:
+        return rows
+    newest = max((r["draw_date"] for r in rows), default=None)
+    more = [r for r in extra if newest is None or r["draw_date"] > newest]
+    print(f"      樂透王備援 {len(extra):,} 期"
+          + (f"，其中 {len(more)} 期比主來源新" if more else "（無更新的）"))
+    return extra + rows
+
+
+def fetch_ca_lotterywang(gid, g, years):
+    """加州的舊名字，現在統一走通用的樂透王抓取。"""
+    return fetch_lw(gid, g, years)
 
 
 def fetch_hk(gid, g, years):
@@ -474,9 +572,14 @@ def fetch_hk(gid, g, years):
     才算成功」，於是把好好的資料丟掉、轉去試那個壞掉的鏡像。
     六合彩因此從來沒有被自動更新過。
     """
-    rows = fetch_pilio_hk(gid, g, years)
+    try:
+        rows = fetch_pilio_hk(gid, g, years)
+    except Exception as e:
+        print(f"      pilio 失敗：{e}")
+        rows = []
+    rows = with_lw_backup(rows, gid, g, years)
     if not rows:
-        raise RuntimeError("pilio 沒有回傳任何六合彩資料")
+        raise RuntimeError("pilio 與樂透王都取不到六合彩資料")
     return rows
 
 
@@ -492,6 +595,10 @@ def fetch_ca_official(gid, g, years):
     url = ("https://www.calottery.com/api/DrawGameApi/"
            f"DrawGamePastDrawResults/10/1/{n}")
     d = json.loads(http(url, retries=2, timeout=45))
+    if not isinstance(d, dict):
+        # 台灣 IP 被擋時這裡會拿到 null，直接講清楚，
+        # 不要讓它變成看不懂的 'NoneType' object has no attribute 'get'
+        raise RuntimeError("官方 API 沒有回傳資料（台灣 IP 通常會被擋）")
     out = []
     for it in (d.get("PreviousDraws") or []):
         wn = it.get("WinningNumbers") or {}
@@ -521,7 +628,12 @@ def fetch_ca(gid, g, years):
     """
     rows, why = [], []
     try:
-        rows = fetch_ca_lotterywang(gid, g, years)
+        rows = fetch_lw(gid, g, years)
+        if rows:
+            print(f"      樂透王 {len(rows):,} 期"
+                  f"（最新 {max(r['draw_date'] for r in rows)}）")
+        else:
+            why.append("樂透王：連得上但解析不到資料")
     except Exception as e:
         why.append(f"樂透王：{e}")
         print(f"      樂透王失敗：{e}")
@@ -682,7 +794,11 @@ def build_html(con, force=False):
     # 網頁的資料藏在 <script> 裡，從外面看不到，出問題時很難判斷是資料沒進來
     # 還是瀏覽器快取。有了這個檔，一眼就知道。
     # 時間必須跟上面網頁裡的 __BUILT__ 完全同一個，否則前端會誤判成快取。
+    # 是誰產生的：雲端排程還是使用者自己按？兩邊看到的網路環境不一樣
+    # （例如樂透王從台灣連得到、從美國機房不一定），沒有這一欄就分不出
+    # 「這份回報是哪一邊的」，先前為此判斷錯過好幾次。
     st = {"built_at_taipei": tp.strftime("%Y-%m-%d %H:%M:%S"),
+          "built_by": "雲端" if os.environ.get("GITHUB_ACTIONS") else "本機",
           "games": {gid: {"name": v["name"],
                           "latest_date": v["rows"][-1][1],
                           "latest_numbers": v["rows"][-1][2],
