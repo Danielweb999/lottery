@@ -1,6 +1,6 @@
 {
- "built_at_taipei": "2026-08-04 13:41:08",
- "built_by": "本機",
+ "built_at_taipei": "2026-08-04 13:46:06",
+ "built_by": "雲端",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
@@ -84,31 +84,30 @@
   "tw539": {
    "ok": true,
    "error": null,
-   "fetched": 315,
-   "added": 3,
+   "fetched": 46,
+   "added": 0,
    "latest": "2026-08-03",
    "source_latest": "2026-08-03"
   },
   "ca_f5": {
-   "ok": true,
-   "error": null,
-   "fetched": 580,
+   "ok": false,
+   "error": "兩個來源都失敗 — 樂透王：連得上但解析不到資料；官方：官方 API 沒有回傳資料（台灣 IP 通常會被擋）",
+   "fetched": 0,
    "added": 0,
-   "latest": "2026-08-04",
-   "source_latest": "2026-08-04"
+   "latest": "2026-08-04"
   },
   "tw649": {
    "ok": true,
    "error": null,
-   "fetched": 133,
-   "added": 1,
+   "fetched": 46,
+   "added": 0,
    "latest": "2026-07-31",
    "source_latest": "2026-07-31"
   },
   "hk6": {
    "ok": true,
    "error": null,
-   "fetched": 354,
+   "fetched": 18,
    "added": 0,
    "latest": "2026-08-01",
    "source_latest": "2026-08-01"
@@ -116,16 +115,16 @@
   "tw3d": {
    "ok": true,
    "error": null,
-   "fetched": 315,
-   "added": 3,
+   "fetched": 46,
+   "added": 0,
    "latest": "2026-08-03",
    "source_latest": "2026-08-03"
   },
   "tw4d": {
    "ok": true,
    "error": null,
-   "fetched": 315,
-   "added": 3,
+   "fetched": 46,
+   "added": 0,
    "latest": "2026-08-03",
    "source_latest": "2026-08-03"
   }
