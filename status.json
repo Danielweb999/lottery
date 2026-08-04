@@ -1,6 +1,6 @@
 {
- "built_at_taipei": "2026-08-04 13:31:13",
- "built_by": "雲端",
+ "built_at_taipei": "2026-08-04 13:41:08",
+ "built_by": "本機",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
@@ -13,7 +13,7 @@
     35
    ],
    "special": null,
-   "count": 3138
+   "count": 3141
   },
   "ca_f5": {
    "name": "加州 Fantasy 5",
@@ -40,7 +40,7 @@
     44
    ],
    "special": 10,
-   "count": 1140
+   "count": 1141
   },
   "hk6": {
    "name": "香港六合彩",
@@ -65,7 +65,7 @@
     1
    ],
    "special": null,
-   "count": 3138
+   "count": 3141
   },
   "tw4d": {
    "name": "台灣四星彩",
@@ -77,37 +77,38 @@
     6
    ],
    "special": null,
-   "count": 3138
+   "count": 3141
   }
  },
  "fetch": {
   "tw539": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 0,
+   "fetched": 315,
+   "added": 3,
    "latest": "2026-08-03",
    "source_latest": "2026-08-03"
   },
   "ca_f5": {
-   "ok": false,
-   "error": "兩個來源都失敗 — 樂透王：連得上但解析不到資料；官方：官方 API 沒有回傳資料（台灣 IP 通常會被擋）",
-   "fetched": 0,
+   "ok": true,
+   "error": null,
+   "fetched": 580,
    "added": 0,
-   "latest": "2026-08-04"
+   "latest": "2026-08-04",
+   "source_latest": "2026-08-04"
   },
   "tw649": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 0,
+   "fetched": 133,
+   "added": 1,
    "latest": "2026-07-31",
    "source_latest": "2026-07-31"
   },
   "hk6": {
    "ok": true,
    "error": null,
-   "fetched": 18,
+   "fetched": 354,
    "added": 0,
    "latest": "2026-08-01",
    "source_latest": "2026-08-01"
@@ -115,16 +116,16 @@
   "tw3d": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 0,
+   "fetched": 315,
+   "added": 3,
    "latest": "2026-08-03",
    "source_latest": "2026-08-03"
   },
   "tw4d": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 0,
+   "fetched": 315,
+   "added": 3,
    "latest": "2026-08-03",
    "source_latest": "2026-08-03"
   }
