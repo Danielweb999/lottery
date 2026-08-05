@@ -97,8 +97,12 @@ jobs:
             git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
             sleep $((i * 5))
           done
-          echo "推送連續 5 次失敗"
-          exit 1
+          # 推不上去不算故障：資料沒有遺失，下一次執行（15 分鐘內）會重抓重推。
+          # 以前這裡直接失敗，於是每次撞車都寄一封「Run failed」給使用者，
+          # 久了就分不出哪些是真的要處理的。真正該報警的是「抓不到資料」，
+          # 那個由 notify.py 直接發 Discord。
+          echo "::warning::推送連續 5 次被搶先，這次略過，下一次執行會補上"
+          exit 0
 
       # 真的失敗時直接發到 Discord，附上該次執行的連結，
       # 不必再從一堆 GitHub 通知信裡面找。
