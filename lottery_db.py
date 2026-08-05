@@ -58,7 +58,7 @@ GAMES = {
         charts=[("大小", "main", "bs"), ("單雙", "main", "oe")],
     ),
     "ca_f5": dict(
-        name="加州 Fantasy 5", short="加州F5", src="calottery", ep=None,
+        name="加州天天樂", short="加州天天樂", src="calottery", ep=None,
         kind="pick", pool=39, n_main=5, has_special=False,
         charts=[("大小", "main", "bs"), ("單雙", "main", "oe")],
     ),
@@ -867,7 +867,7 @@ HTML_TMPL = r"""<!DOCTYPE html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
-<title>樂透路子圖</title>
+<title>樂透資料網</title>
 <style>
 :root{--blue:#1f4fd8;--red:#c8352b;--green:#14875a;--ink:#1c1c1e;--mute:#6f6f77;
  --line:#e3e3e8;--bg:#f7f6f4;--cell:28px}
@@ -979,10 +979,8 @@ body.hollow .mk.g{color:var(--green);border-color:var(--green)}
 .sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px}
 
 /* ── 最新一期強調 ── */
+/* 最新一期只用外框標示。原本上面還掛一個「新」小標籤，會蓋到上一格，很干擾。*/
 .mk.newest{outline:3px solid #111;outline-offset:2px;z-index:8}
-.mk.newest::after{content:"新";position:absolute;top:-15px;left:50%;transform:translateX(-50%);
- font-size:9px;font-weight:700;color:#fff;background:#111;border-radius:3px;padding:0 3px;
- line-height:1.5}
 
 /* ── 頂部「現在的狀況」摘要 ── */
 .now{border:2px solid var(--ink);border-radius:10px;padding:15px 18px;margin-bottom:18px;
@@ -1050,11 +1048,13 @@ tbody tr:hover{background:#f8fafe}
   .now{padding:12px 13px}
   .now .hd{gap:6px}
   .now .hd b{font-size:15px}
-  .nrow{gap:7px}
-  .nrow .lb{flex:0 0 100%}
-  .nrow .st{flex:0 0 100%}
-  .strip i{width:20px;height:20px;font-size:11px}
-  .arrowhint{flex:0 0 100%}
+  /* 手機上這三段（名稱／目前狀態／近期條）擠在同一行會亂掉，
+     改成各佔一整行，近期條自己橫向捲動。*/
+  .nrow{gap:4px 8px;padding:9px 0}
+  .nrow .lb{flex:0 0 100%;font-size:13.5px}
+  .nrow .st{flex:0 0 100%;font-size:13px}
+  .nrow .strip{flex:0 0 100%;overflow-x:auto;white-space:nowrap;padding-bottom:2px}
+  .strip i{width:22px;height:22px;font-size:11.5px}
 
   .legend{gap:8px 14px;font-size:11.5px;padding:9px 11px}
   table{font-size:11.5px}
@@ -1064,9 +1064,9 @@ tbody tr:hover{background:#f8fafe}
 }
 </style></head><body><div class="wrap">
 
-<header><h1>樂透路子圖</h1>
+<header><h1>樂透資料網</h1>
 <span class="tag" id="hdr"></span>
-<span style="font-size:12px;color:var(--mute)">建立於 __BUILT__ · 資料已內嵌，離線可看</span></header>
+<span id="built" hidden>__BUILT__</span></header>
 
 <div class="tabs" id="tabs"></div>
 
