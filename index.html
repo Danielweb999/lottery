@@ -209,7 +209,7 @@ tbody tr:hover{background:#f8fafe}
 
 <header><h1>樂透資料網</h1>
 <span class="tag" id="hdr"></span>
-<span id="built" hidden>2026-08-05 16:57</span></header>
+<span id="built" hidden>2026-08-05 17:15</span></header>
 
 <div class="tabs" id="tabs"></div>
 
@@ -747,7 +747,7 @@ initTabs();initYears();render();
     fetch("status.json?t="+Date.now(),{cache:"no-store"})
       .then(function(r){return r.json();})
       .then(function(s){
-        var mine="2026-08-05 16:57";
+        var mine="2026-08-05 17:15";
         var live=(s.built_at_taipei||"").slice(0,16);
         if(!live||live===mine)return;
         var tried=new URLSearchParams(location.search).get("v");
