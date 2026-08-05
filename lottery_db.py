@@ -890,10 +890,11 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .flashline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
  padding:9px 0;border-bottom:1px solid var(--line)}
 .flashline .k{color:var(--mute);font-size:12.5px;min-width:74px}
-.ball{display:inline-flex;align-items:center;justify-content:center;
+.pball{display:inline-flex;align-items:center;justify-content:center;
  width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;
  font-weight:700;font-size:14px}
-.ball.sp{background:var(--green)}
+.pball.sp{background:var(--green)}
+.pball.cold{background:#5a6f9e}
 .pill{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12.5px;
  font-weight:700;color:#fff}
 .pill.b{background:var(--red)}.pill.s{background:var(--blue)}
@@ -902,11 +903,13 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .gaprow .no{width:30px;height:30px;border-radius:50%;flex:0 0 auto;
  display:flex;align-items:center;justify-content:center;font-weight:700;
  background:#ececef;font-size:12.5px}
-.gaprow .bw{flex:1;background:#f1f1f4;border-radius:4px;height:15px;position:relative}
-.gaprow .bf{height:100%;border-radius:4px;background:#8aa2d8}
+/* bw / bf 一定要是 block，之前寫成 inline 的 span，寬度完全不會生效，
+   結果整排長條都是空的。*/
+.gaprow .bw{display:block;flex:1;background:#eef0f4;border-radius:4px;height:16px}
+.gaprow .bf{display:block;height:100%;border-radius:4px;background:#5a6f9e;min-width:2px}
 .gaprow.hot .no{background:var(--red);color:#fff}
 .gaprow.hot .bf{background:var(--red)}
-.gaprow .nn{width:34px;text-align:right;color:var(--mute)}
+.gaprow .nn{width:34px;text-align:right;color:var(--mute);font-weight:700}
 table.gt{border-collapse:collapse;width:100%;font-size:13px}
 table.gt th,table.gt td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
 table.gt th{color:var(--mute);font-weight:600;cursor:pointer;white-space:nowrap}
@@ -993,9 +996,13 @@ th{background:#f2f1ee;text-align:left;padding:8px 11px;border-bottom:1px solid v
 td{padding:7px 11px;border-bottom:1px solid #f0f0ef}
 tbody tr:hover{background:#f8fafe}
 .num{text-align:right;font-variant-numeric:tabular-nums}
-.ball{display:inline-block;min-width:23px;padding:1px 5px;margin-right:3px;text-align:center;
- background:#eef1f6;border-radius:4px;font-size:12px;font-variant-numeric:tabular-nums}
-.ball.sp{background:#fdecc8;font-weight:700}
+/* 開獎明細裡的號碼：原本是淺灰底＋淺灰字，在白底上幾乎看不見。
+   改成深色實心圓，跟頁首那排球一致。*/
+.ball{display:inline-flex;align-items:center;justify-content:center;
+ width:27px;height:27px;margin-right:5px;border-radius:50%;
+ background:#2b3550;color:#fff;font-weight:700;
+ font-size:12.5px;font-variant-numeric:tabular-nums}
+.ball.sp{background:#b8860b;color:#fff}
 .fbox{border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-top:10px}
 .warn{background:#fff8e6;border:1px solid #ecd9a4;border-radius:9px;padding:14px 18px;
  font-size:13.5px;line-height:1.8;margin-bottom:18px}
@@ -1067,22 +1074,13 @@ tbody tr:hover{background:#f8fafe}
 <div id="mask" class="mask"><div class="panel">
   <div class="ptop"><b id="ptitle"></b>
     <span style="flex:1"></span>
+    <button class="btn" id="psort" style="display:none">排序：最久沒開</button>
     <button class="btn" id="pswitch" style="display:none">看法：橫條圖</button>
     <button class="btn" id="pclose">關閉</button></div>
   <div id="pbody"></div>
 </div></div>
 
 <div id="out"></div>
-
-<div class="warn" style="margin-top:30px">
-<b>先講清楚這張圖能做什麼、不能做什麼。</b><br>
-樂透每期都是<b>獨立事件</b>，開獎機器不記得上一期開什麼。路子圖能忠實呈現歷史型態，
-但<b>「連開五個大」不會讓下一期更容易開小，也不會更容易開大</b>——這是機率論裡最經典的謬誤（賭徒謬誤）。<br>
-下方「理論值對照」是有意義的部分：把實際開出比例跟數學上算出的理論機率對照，
-可以檢驗這個彩種的開獎是否公正。如果實際與理論明顯不符，那才是真的值得追查的事。<br>
-順帶一提，這些遊戲的<b>大小並非各 50%</b>——因為總和分布是鐘形的，中間值出現機率最高，
-所以「和」的機率遠比直覺高，這在理論值表裡看得很清楚。
-</div>
 
 </div>
 <script>
@@ -1259,14 +1257,22 @@ function render(){
   });
   H+=`</tbody></table></div>`;
 
+  // 未開累計（主畫面版；跟「未開累計」按鍵開出來的是同一段程式）
+  H+=`<h2>未開累計　<span style="font-size:12.5px;font-weight:400;color:var(--mute)">`+
+     `距離上次開出已經過幾期`+
+     (G.kind==="digit"?"（0-9，不分位數）":(G.has_special?"（只計正選）":""))+
+     `</span>　<button class="btn" id="mgsort">排序：最久沒開</button>`+
+     `　<button class="btn" id="mgview">看法：橫條圖</button></h2>
+     <div class="fbox" style="padding:12px 14px" id="mgbox"></div>`;
+
   // 明細
-  H+=`<h2>開獎明細　<span style="font-size:12.5px;font-weight:400;color:var(--mute)">最近 100 期</span></h2>
-    <div class="fbox" style="max-height:520px;overflow:auto"><table><thead><tr>
+  H+=`<h2>開獎明細　<span style="font-size:12.5px;font-weight:400;color:var(--mute)">最近 40 期</span></h2>
+    <div class="fbox" style="max-height:420px;overflow:auto"><table><thead><tr>
     <th>日期</th><th>期別</th><th>開出號碼</th><th class="num">6球和</th>`
     +(G.charts.some(c=>c[1]==="all")?`<th class="num">7球和</th>`:``)
     +`<th>大小</th><th>單雙</th></tr></thead><tbody>`;
   const t6=G.th["main"], t7=G.th["all"];
-  rows.slice().reverse().slice(0,100).forEach(r=>{
+  rows.slice().reverse().slice(0,40).forEach(r=>{
     const balls=r[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")
       +(r[3]!==null?`<span class="ball sp">${ballTxt(G,r[3])}</span>`:"");
     const bs=v=>{const t=t6;return (t.tie!==null&&v===t.tie)?'<b class="c-g">和</b>'
@@ -1279,6 +1285,7 @@ function render(){
   });
   H+=`</tbody></table></div>`;
   $("out").innerHTML=H;
+  paintMainGap();
   G.charts.forEach(([title,scope,mode],ci)=>{
     draw(document.getElementById("g"+ci), seqOf(G,rows,scope,mode));
   });
@@ -1345,8 +1352,8 @@ function flashHTML(G){
   let h=`<div class="flashline"><span class="k">日期</span><b>${r[1]}</b>`+
         `<span style="color:var(--mute);font-size:12.5px">第 ${r[0]} 期</span></div>`;
   h+=`<div class="flashline"><span class="k">${G.kind==="digit"?"獎號":"開出號碼"}</span>`+
-     r[2].map(v=>`<span class="ball">${pad(v)}</span>`).join("")+
-     (r[3]!==null&&r[3]!==undefined?`<span class="ball sp">${pad(r[3])}</span>`
+     r[2].map(v=>`<span class="pball">${pad(v)}</span>`).join("")+
+     (r[3]!==null&&r[3]!==undefined?`<span class="pball sp">${pad(r[3])}</span>`
         +`<span style="color:var(--mute);font-size:12px">特別號</span>`:"")+`</div>`;
   h+=`<div class="flashline"><span class="k">總和</span><b>${r[4]}</b>`+
      (r[5]!==r[4]?`<span style="color:var(--mute);font-size:12.5px">（含特別號 ${r[5]}）</span>`:"")+`</div>`;
@@ -1358,37 +1365,47 @@ function flashHTML(G){
   const cold=gaps(G).sort((a,b)=>b.gap-a.gap).slice(0,8);
   h+=`<div class="flashline" style="border:none;align-items:flex-start">`+
      `<span class="k">最久沒開</span><span>`+
-     cold.map(x=>`<span class="ball" style="background:#8aa2d8;margin:2px 3px 2px 0">`+
+     cold.map(x=>`<span class="pball cold" style="margin:2px 3px 2px 0">`+
        `${pad(x.v)}</span><span style="color:var(--mute);font-size:12px;margin-right:8px">`+
        `${x.gap}期</span>`).join("")+`</span></div>`;
-  h+=`<div style="color:var(--mute);font-size:12px;margin-top:10px;line-height:1.6">`+
-     `「最久沒開」只是歷史統計。每期都是獨立事件，久沒開的號碼<b>並不會</b>比較容易開出。</div>`;
   return h;
 }
 
-function gapHTML(G,view,sortBy){
+function gapHTML(G,view,sortBy,head){
   const pad=x=>G.kind==="digit"?String(x):String(x).padStart(2,"0");
   let g=gaps(G);
   const mx=Math.max(1,...g.map(x=>x.gap));
   const hot=new Set(g.slice().sort((a,b)=>b.gap-a.gap).slice(0,5).map(x=>x.v));
-  const head=`<div style="color:var(--mute);font-size:12.5px;margin-bottom:10px">`+
-    `共 ${G.rows.length} 期資料，最後一期 ${G.rows[G.rows.length-1][1]}。`+
-    `數字＝距離上次開出已經過幾期，0 代表最新一期就有開。`+
-    (G.kind==="digit"?"（不分位數，任一位出現就算開過）"
-                     :(G.has_special?"（只計正選，不含特別號）":""))+`</div>`;
+  g = sortBy==="no" ? g.slice().sort((a,b)=>a.v-b.v)
+                    : g.slice().sort((a,b)=>b.gap-a.gap);
+  head = head===undefined ? "" : head;
   if(view==="bar"){
-    g=g.slice().sort((a,b)=>b.gap-a.gap);
     return head+g.map(x=>
       `<div class="gaprow${hot.has(x.v)?" hot":""}"><span class="no">${pad(x.v)}</span>`+
-      `<span class="bw"><span class="bf" style="width:${Math.round(x.gap/mx*100)}%"></span></span>`+
+      `<span class="bw"><span class="bf" style="width:${Math.max(2,Math.round(x.gap/mx*100))}%"></span></span>`+
       `<span class="nn">${x.gap}</span></div>`).join("");
   }
-  if(sortBy==="no") g=g.slice().sort((a,b)=>a.v-b.v);
-  else g=g.slice().sort((a,b)=>b.gap-a.gap);
   return head+`<table class="gt"><tr><th data-s="no">號碼 ⇅</th>`+
     `<th data-s="gap">未開期數 ⇅</th><th>上次開出</th></tr>`+
     g.map(x=>`<tr class="${hot.has(x.v)?"hot":""}"><td>${pad(x.v)}</td>`+
       `<td>${x.gap}</td><td>${x.date||"這段期間都沒開過"}</td></tr>`).join("")+`</table>`;
+}
+
+// 主畫面上的未開累計（跟浮層各自記住自己的看法與排序）
+let MV="bar", MS="gap";
+function paintMainGap(){
+  const box=$("mgbox");
+  if(!box) return;
+  box.innerHTML=gapHTML(DATA[CUR],MV,MS);
+  $("mgview").textContent="看法："+(MV==="bar"?"橫條圖":"表格");
+  $("mgsort").textContent="排序："+(MS==="gap"?"最久沒開":"號碼順序");
+  $("mgview").onclick=()=>{MV=MV==="bar"?"table":"bar";paintMainGap();};
+  $("mgsort").onclick=()=>{MS=MS==="gap"?"no":"gap";paintMainGap();};
+  if(MV==="table"){
+    box.querySelectorAll("table.gt th[data-s]").forEach(t=>{
+      t.onclick=()=>{MS=t.dataset.s;paintMainGap();};
+    });
+  }
 }
 
 let PV="bar", PS="gap", PMODE="";
@@ -1397,22 +1414,32 @@ function openPanel(kind){
   PMODE=kind;
   $("ptitle").textContent=G.name+(kind==="flash"?"　開獎速報":"　未開累計");
   $("pswitch").style.display=kind==="gap"?"":"none";
+  $("psort").style.display=kind==="gap"?"":"none";
   paintPanel();
   $("mask").classList.add("on");
 }
 function paintPanel(){
   const G=DATA[CUR];
-  $("pbody").innerHTML = PMODE==="flash" ? flashHTML(G) : gapHTML(G,PV,PS);
+  $("pbody").innerHTML = PMODE==="flash" ? flashHTML(G) : gapHTML(G,PV,PS,gapHead(G));
   $("pswitch").textContent="看法："+(PV==="bar"?"橫條圖":"表格");
+  $("psort").textContent="排序："+(PS==="gap"?"最久沒開":"號碼順序");
   if(PMODE==="gap"&&PV==="table"){
     document.querySelectorAll("table.gt th[data-s]").forEach(t=>{
       t.onclick=()=>{PS=t.dataset.s;paintPanel();};
     });
   }
 }
+function gapHead(G){
+  return `<div style="color:var(--mute);font-size:12.5px;margin-bottom:10px">`+
+    `共 ${G.rows.length.toLocaleString()} 期資料，最後一期 ${G.rows[G.rows.length-1][1]}。`+
+    `數字＝距離上次開出已經過幾期，0 代表最新一期就有開。`+
+    (G.kind==="digit"?"（不分位數，任一位出現就算開過）"
+                     :(G.has_special?"（只計正選，不含特別號）":""))+`</div>`;
+}
 $("flash").onclick=()=>openPanel("flash");
 $("gapbtn").onclick=()=>openPanel("gap");
 $("pswitch").onclick=()=>{PV=PV==="bar"?"table":"bar";paintPanel();};
+$("psort").onclick=()=>{PS=PS==="gap"?"no":"gap";paintPanel();};
 $("pclose").onclick=()=>$("mask").classList.remove("on");
 $("mask").onclick=e=>{ if(e.target===$("mask")) $("mask").classList.remove("on"); };
 document.addEventListener("keydown",e=>{
