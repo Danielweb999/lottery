@@ -201,7 +201,7 @@ tbody tr:hover{background:#f8fafe}
 
 <header><h1>樂透路子圖</h1>
 <span class="tag" id="hdr"></span>
-<span style="font-size:12px;color:var(--mute)">建立於 2026-08-05 15:01 · 資料已內嵌，離線可看</span></header>
+<span style="font-size:12px;color:var(--mute)">建立於 2026-08-05 15:02 · 資料已內嵌，離線可看</span></header>
 
 <div class="tabs" id="tabs"></div>
 
@@ -379,6 +379,23 @@ function render(){
     <span>同結果往下，換結果換欄，滿 6 格往右拖尾（<b>↳</b>）</span>
     <span>共 ${rows.length.toLocaleString()} 期</span></div>`;
 
+  // 號碼查詢（只有三星彩、四星彩需要：它們是「數字組合」而不是選號）
+  if(G.kind==="digit"){
+    const ex=G.rows[G.rows.length-1][2].join("");
+    H+=`<h2>號碼查詢　<span class="sub">正彩＝位置也要一樣；組彩＝號碼一樣、順序不拘</span></h2>
+      <div class="fbox" style="padding:12px 14px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="qn" maxlength="${G.digits}" inputmode="numeric"
+            placeholder="輸入 ${G.digits} 位數字，例如 ${ex}"
+            style="font:inherit;font-size:16px;letter-spacing:4px;padding:5px 11px;
+              border:1px solid #ccccd4;border-radius:6px;width:170px">
+          <button class="btn" id="qgo">查詢</button>
+          <span id="qmsg" style="font-size:12.5px;color:var(--mute)"></span>
+        </div>
+        <div id="qout" style="margin-top:12px"></div>
+      </div>`;
+  }
+
   // 未開累計與開獎明細並列（橫條拉太寬很難讀，各佔一半剛好）
   H+=`<div class="two">`;
   H+=`<div><h2>未開累計　<span class="sub">`+
@@ -408,6 +425,7 @@ function render(){
   H+=`</tbody></table></div></div></div>`;
   $("out").innerHTML=H;
   paintMainGap();
+  bindQuery();
   G.charts.forEach(([title,scope,mode],ci)=>{
     draw(document.getElementById("g"+ci), seqOf(G,rows,scope,mode));
   });
@@ -526,6 +544,56 @@ function gapHTML(G,view,sortBy,head){
     `<th data-s="gap">未開期數 ⇅</th><th>上次開出</th></tr>`+
     g.map(x=>`<tr class="${hot.has(x.v)?"hot":""}"><td>${pad(x.v)}</td>`+
       `<td>${x.gap}</td><td>${x.date||"這段期間都沒開過"}</td></tr>`).join("")+`</table>`;
+}
+
+/* 號碼查詢：三星彩／四星彩專用
+   正彩 = 數字與位置都相同；組彩 = 同一組數字、順序不拘（正彩是組彩的一種）。*/
+function bindQuery(){
+  const go=$("qgo"); if(!go) return;
+  go.onclick=runQuery;
+  $("qn").onkeydown=e=>{ if(e.key==="Enter") runQuery(); };
+}
+function runQuery(){
+  const G=DATA[CUR], box=$("qout"), msg=$("qmsg");
+  const v=($("qn").value||"").replace(/\D/g,"");
+  if(v.length!==G.digits){
+    msg.textContent=`請輸入 ${G.digits} 位數字`; box.innerHTML=""; return;
+  }
+  msg.textContent="";
+  const want=v.split("").map(Number);
+  const sig=a=>a.slice().sort().join("");
+  const ws=want.join(""), wk=sig(want);
+  const N=G.rows.length;
+  const hit=[];
+  G.rows.forEach((r,i)=>{
+    const s=r[2].join("");
+    if(sig(r[2])!==wk) return;
+    hit.push({date:r[1], nums:s, exact:s===ws, ago:N-1-i});
+  });
+  const ex=hit.filter(h=>h.exact);
+  const stat=(lab,arr,note)=>{
+    const last=arr.length?arr[arr.length-1]:null;
+    return `<div style="flex:1;min-width:190px;background:#f7f6f4;border-radius:8px;padding:10px 12px">
+      <div style="font-size:12.5px;color:var(--mute)">${lab}${note}</div>
+      <div style="font-size:22px;font-weight:700;margin:2px 0 1px">${arr.length}<span
+        style="font-size:13px;font-weight:400;color:var(--mute)"> 次</span></div>
+      <div style="font-size:12px;color:var(--mute)">${
+        last?`最近 ${last.date}（${last.ago===0?"就是最新一期":last.ago+" 期前"}）`:"從來沒有開過"}</div></div>`;
+  };
+  let h=`<div style="display:flex;gap:10px;flex-wrap:wrap">`+
+    stat(`正彩 ${ws}`,ex,"　位置相同")+
+    stat(`組彩 ${ws}`,hit,"　順序不拘")+`</div>`;
+  if(hit.length){
+    h+=`<div style="max-height:230px;overflow:auto;margin-top:10px">
+      <table class="gt"><tr><th>日期</th><th>開出</th><th>種類</th><th>距今</th></tr>`+
+      hit.slice().reverse().map(x=>`<tr><td>${x.date}</td>`+
+        `<td style="letter-spacing:3px;font-weight:700">${x.nums}</td>`+
+        `<td>${x.exact?'<b class="c-r">正彩</b>':'<span style="color:var(--mute)">組彩</span>'}</td>`+
+        `<td>${x.ago===0?"最新一期":x.ago+" 期前"}</td></tr>`).join("")+`</table></div>`;
+  }
+  h+=`<div style="font-size:12px;color:var(--mute);margin-top:8px">`+
+     `查詢範圍：全部 ${N.toLocaleString()} 期（${G.rows[0][1]} 起）。組彩次數已含正彩。</div>`;
+  box.innerHTML=h;
 }
 
 // 主畫面上的未開累計（跟浮層各自記住自己的看法與排序）
@@ -668,7 +736,7 @@ initTabs();initYears();render();
     fetch("status.json?t="+Date.now(),{cache:"no-store"})
       .then(function(r){return r.json();})
       .then(function(s){
-        var mine="2026-08-05 15:01";
+        var mine="2026-08-05 15:02";
         var live=(s.built_at_taipei||"").slice(0,16);
         if(!live||live===mine)return;
         var tried=new URLSearchParams(location.search).get("v");
