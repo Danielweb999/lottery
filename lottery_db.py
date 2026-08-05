@@ -934,6 +934,21 @@ select,.btn{font:inherit;font-size:12.5px;padding:4px 9px;border:1px solid #cccc
 .bar .sep{flex:1}
 select:hover,.btn:hover{border-color:#9a9aa8}
 label{font-size:12px;color:var(--mute)}
+/* 號碼分析 */
+.anz{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.anz .btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tg{display:grid;font-size:10px}
+.tg div{border-right:1px solid #f0f0f2;border-bottom:1px solid #f0f0f2;
+ height:19px;display:flex;align-items:center;justify-content:center;color:#c9c9cf}
+.tg .hd{color:var(--mute);font-weight:700;border-bottom:1px solid var(--line);height:20px}
+.tg .dt{color:var(--mute);justify-content:flex-end;padding-right:6px;font-size:10px;
+ white-space:nowrap;min-width:62px}
+.tg .on{background:var(--blue);color:#fff;font-weight:700}
+.tg .on.r{background:var(--red)}
+.kv{display:flex;flex-wrap:wrap;gap:6px}
+.kv .it{background:#f4f3f0;border-radius:7px;padding:6px 9px;font-size:12.5px;min-width:74px}
+.kv .it b{display:block;font-size:16px}
+.kv .it.hot{background:#fbe9e6}
 /* 未開累計與開獎明細並列；窄畫面自動疊成上下 */
 .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;
  align-items:start}
@@ -1272,6 +1287,12 @@ function render(){
       </div>`;
   }
 
+  // 號碼分析（選號型彩種專用）
+  if(G.kind!=="digit"){
+    H+=`<h2>號碼分析</h2><div class="anz" id="anztabs"></div>
+        <div class="fbox" style="padding:12px 14px;overflow:auto" id="anzbox"></div>`;
+  }
+
   // 未開累計與開獎明細並列（橫條拉太寬很難讀，各佔一半剛好）
   H+=`<div class="two">`;
   H+=`<div><h2>未開累計　<span class="sub">`+
@@ -1302,6 +1323,7 @@ function render(){
   $("out").innerHTML=H;
   paintMainGap();
   bindQuery();
+  paintAnz();
   G.charts.forEach(([title,scope,mode],ci)=>{
     draw(document.getElementById("g"+ci), seqOf(G,rows,scope,mode));
   });
@@ -1420,6 +1442,166 @@ function gapHTML(G,view,sortBy,head){
     `<th data-s="gap">未開期數 ⇅</th><th>上次開出</th></tr>`+
     g.map(x=>`<tr class="${hot.has(x.v)?"hot":""}"><td>${pad(x.v)}</td>`+
       `<td>${x.gap}</td><td>${x.date||"這段期間都沒開過"}</td></tr>`).join("")+`</table>`;
+}
+
+/* ── 號碼分析：六種常見的看法 ──────────────────────────
+   全部都是從已有的開獎資料直接算出來的，不需要另外抓任何東西。*/
+const ANZ=[["trend","走勢分佈圖"],["tail","尾數／頭數"],["zone","三分區"],
+           ["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"]];
+let ANZK="trend", DRAGN=null;
+
+function anzNums(G){return [...Array(G.pool).keys()].map(i=>i+1);}
+function pad2(x){return String(x).padStart(2,"0");}
+
+function paintAnz(){
+  const box=$("anzbox"); if(!box) return;
+  const G=DATA[CUR];
+  $("anztabs").innerHTML=ANZ.map(([k,t])=>
+    `<button class="btn${k===ANZK?" on":""}" data-k="${k}">${t}</button>`).join("");
+  $("anztabs").querySelectorAll("button").forEach(b=>
+    b.onclick=()=>{ANZK=b.dataset.k;paintAnz();});
+  box.innerHTML=({trend:anzTrend,tail:anzTail,zone:anzZone,
+                  rep:anzRepeat,pair:anzPair,drag:anzDrag}[ANZK])(G);
+  if(ANZK==="drag"){
+    const sel=$("dragsel");
+    if(sel) sel.onchange=()=>{DRAGN=+sel.value;paintAnz();};
+  }
+}
+function anzNote(t){
+  return `<div style="font-size:12px;color:var(--mute);margin-top:9px">${t}</div>`;
+}
+
+/* 1. 走勢分佈圖：橫軸 1..pool，縱軸最近 N 期，開出的格子上色 */
+function anzTrend(G){
+  const N=Math.min(30,G.rows.length), rows=G.rows.slice(-N).reverse();
+  const nums=anzNums(G);
+  let h=`<div class="tg" style="grid-template-columns:auto repeat(${nums.length},minmax(17px,1fr));min-width:${nums.length*19+70}px">`;
+  h+=`<div class="hd"></div>`+nums.map(n=>`<div class="hd">${n}</div>`).join("");
+  rows.forEach(r=>{
+    const set=new Set(r[2]); const sp=r[3];
+    h+=`<div class="dt">${r[1].slice(5)}</div>`;
+    nums.forEach(n=>{
+      h+=set.has(n)?`<div class="on">${pad2(n)}</div>`
+        :(n===sp?`<div class="on r">${pad2(n)}</div>`:`<div></div>`);
+    });
+  });
+  h+=`</div>`;
+  return h+anzNote(`最近 ${N} 期，最新在最上面。`+
+    (G.has_special?"藍＝正選，紅＝特別號。":"")+"　橫向可捲動。");
+}
+
+/* 2. 尾數（個位 0-9）／頭數（十位）出現次數與目前未開期數 */
+function anzTail(G){
+  const N=G.rows.length;
+  const mk=(label,keyf,keys)=>{
+    const cnt={},last={};
+    keys.forEach(k=>cnt[k]=0);
+    G.rows.forEach((r,i)=>{
+      const seen=new Set(r[2].map(keyf));
+      seen.forEach(k=>{cnt[k]=(cnt[k]||0)+1;last[k]=i;});
+    });
+    const gap=k=>last[k]===undefined?N:N-1-last[k];
+    const mx=Math.max(...keys.map(gap));
+    return `<div style="font-weight:700;font-size:13px;margin:2px 0 7px">${label}</div>`+
+      `<div class="kv">`+keys.map(k=>
+        `<div class="it${gap(k)===mx?" hot":""}">${label[0]}${k}<b>${cnt[k]}</b>`+
+        `<span style="color:var(--mute)">未開 ${gap(k)}</span></div>`).join("")+`</div>`;
+  };
+  const heads=[...new Set(anzNums(G).map(n=>Math.floor(n/10)))];
+  return mk("尾數",n=>n%10,[...Array(10).keys()])+
+    `<div style="height:14px"></div>`+
+    mk("頭數",n=>Math.floor(n/10),heads)+
+    anzNote(`出現次數＝該尾數／頭數曾在幾期裡出現過（同一期出現多顆只算一次），`+
+            `共 ${N.toLocaleString()} 期。紅底＝目前最久沒開。`);
+}
+
+/* 3. 三分區：把號碼平均切三段，統計每期落點比例 */
+function anzZone(G){
+  const p=G.pool, a=Math.round(p/3), b=Math.round(p*2/3);
+  const zone=n=>n<=a?0:(n<=b?1:2);
+  const cnt={}, recent=[];
+  G.rows.forEach((r,i)=>{
+    const z=[0,0,0]; r[2].forEach(n=>z[zone(n)]++);
+    const k=z.join(":"); cnt[k]=(cnt[k]||0)+1;
+    if(i>=G.rows.length-12) recent.push([r[1],k]);
+  });
+  const top=Object.entries(cnt).sort((x,y)=>y[1]-x[1]);
+  const N=G.rows.length;
+  return `<div style="font-size:12.5px;color:var(--mute);margin-bottom:8px">`+
+    `一區 1-${a}　二區 ${a+1}-${b}　三區 ${b+1}-${p}</div>`+
+    `<div class="kv">`+top.slice(0,10).map(([k,v])=>
+      `<div class="it">${k}<b>${v}</b><span style="color:var(--mute)">`+
+      `${(v/N*100).toFixed(1)}%</span></div>`).join("")+`</div>`+
+    `<div style="font-weight:700;font-size:13px;margin:14px 0 7px">最近 12 期</div>`+
+    `<table class="gt"><tr><th>日期</th><th>一區:二區:三區</th></tr>`+
+    recent.reverse().map(([d,k])=>`<tr><td>${d}</td><td><b>${k}</b></td></tr>`).join("")+
+    `</table>`+anzNote(`共 ${N.toLocaleString()} 期，上方只列最常出現的 10 種組合。`);
+}
+
+/* 4. 連莊重複號：與上一期重複的號碼 */
+function anzRepeat(G){
+  const dist={}, list=[];
+  for(let i=1;i<G.rows.length;i++){
+    const prev=new Set(G.rows[i-1][2]);
+    const same=G.rows[i][2].filter(n=>prev.has(n));
+    dist[same.length]=(dist[same.length]||0)+1;
+    if(i>=G.rows.length-15) list.push([G.rows[i][1],same]);
+  }
+  const N=G.rows.length-1;
+  return `<div class="kv">`+Object.keys(dist).sort().map(k=>
+    `<div class="it">重複 ${k} 個<b>${dist[k]}</b>`+
+    `<span style="color:var(--mute)">${(dist[k]/N*100).toFixed(1)}%</span></div>`).join("")+
+    `</div><div style="font-weight:700;font-size:13px;margin:14px 0 7px">最近 15 期</div>`+
+    `<table class="gt"><tr><th>日期</th><th>與上期重複</th></tr>`+
+    list.reverse().map(([d,a])=>`<tr><td>${d}</td><td>`+
+      (a.length?a.map(n=>`<span class="ball">${pad2(n)}</span>`).join(""):
+       `<span style="color:var(--mute)">無</span>`)+`</td></tr>`).join("")+
+    `</table>`+anzNote(`共比對 ${N.toLocaleString()} 組相鄰期數。`);
+}
+
+/* 5. 哥倆好：最常一起開出的兩個號碼 */
+function anzPair(G){
+  const cnt={};
+  G.rows.forEach(r=>{
+    const a=r[2].slice().sort((x,y)=>x-y);
+    for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++){
+      const k=a[i]+","+a[j]; cnt[k]=(cnt[k]||0)+1;
+    }
+  });
+  const top=Object.entries(cnt).sort((x,y)=>y[1]-x[1]).slice(0,24);
+  const N=G.rows.length;
+  return `<div class="kv">`+top.map(([k,v])=>{
+    const [x,y]=k.split(",");
+    return `<div class="it" style="min-width:96px">`+
+      `<span class="ball">${pad2(x)}</span><span class="ball">${pad2(y)}</span>`+
+      `<b>${v}</b><span style="color:var(--mute)">${(v/N*100).toFixed(1)}%</span></div>`;
+  }).join("")+`</div>`+
+  anzNote(`共 ${N.toLocaleString()} 期，列出同時開出次數最多的 24 組。`);
+}
+
+/* 6. 拖牌：某號開出後，下一期最常跟著開出哪些號碼 */
+function anzDrag(G){
+  const nums=anzNums(G);
+  if(DRAGN===null) DRAGN=G.rows[G.rows.length-1][2][0];
+  const cnt={}; let base=0;
+  for(let i=0;i<G.rows.length-1;i++){
+    if(!G.rows[i][2].includes(DRAGN)) continue;
+    base++;
+    G.rows[i+1][2].forEach(n=>{cnt[n]=(cnt[n]||0)+1;});
+  }
+  const top=Object.entries(cnt).map(([n,v])=>[+n,v])
+    .sort((a,b)=>b[1]-a[1]).slice(0,15);
+  return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">`+
+    `<span style="font-size:12.5px;color:var(--mute)">開出這個號碼</span>`+
+    `<select id="dragsel">`+nums.map(n=>
+      `<option value="${n}"${n===DRAGN?" selected":""}>${pad2(n)}</option>`).join("")+
+    `</select><span style="font-size:12.5px;color:var(--mute)">之後，下一期最常跟著開出</span></div>`+
+    (base?`<div class="kv">`+top.map(([n,v])=>
+      `<div class="it" style="min-width:80px"><span class="ball">${pad2(n)}</span>`+
+      `<b>${v}</b><span style="color:var(--mute)">${(v/base*100).toFixed(1)}%</span></div>`
+      ).join("")+`</div>`+
+      anzNote(`${pad2(DRAGN)} 總共開出 ${base} 次（不含最新一期），上面是這 ${base} 次的下一期統計。`)
+     :anzNote("這個號碼在資料範圍內沒有開出過。"));
 }
 
 /* 號碼查詢：三星彩／四星彩專用
