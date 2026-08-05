@@ -1035,15 +1035,23 @@ tbody tr:hover{background:#f8fafe}
   .bar{gap:7px;padding:11px 0 12px}
   select,.btn{font-size:12.5px;padding:5px 9px}
 
-  /* 資訊欄改成橫置在圖的上方，把整個寬度讓給路子圖 */
-  .road{flex-direction:column}
-  .road .side{flex:1 1 auto;border-right:0;border-bottom:1px solid var(--line);
-    flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:10px 12px}
-  .side .ttl{margin:0;flex:0 0 100%}
-  .side .sub{margin:0;flex:0 0 100%;order:9}
-  .side .cnt{display:inline-flex;justify-content:flex-start;gap:5px;font-size:15px}
-  .side .pct{margin:0;flex:0 0 100%;order:10}
-  .grid-scroll{padding:8px 4px}
+  /* 手機版路子圖：資訊欄原本是一整個直立區塊，把格子擠到畫面外，
+     常常只看得到空白。改成頂部兩行的緊湊標頭，寬度全部讓給格子。*/
+  .roads{gap:10px}
+  .road,.roads .road{flex-direction:column;margin-bottom:0}
+  .road .side,.roads .side{flex:0 0 auto;border-right:0;
+    border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:wrap;
+    align-items:baseline;gap:2px 10px;padding:8px 11px}
+  .side .ttl{margin:0;font-size:14px}
+  .side .cnt{display:inline-flex;justify-content:flex-start;gap:4px;font-size:14px;
+    line-height:1.4}
+  .side .cnt span:first-child{font-size:12.5px}
+  /* 門檻與百分比壓成同一行的小字，並且擺到最後 */
+  .side .sub,.side .pct{margin:0;flex:0 0 100%;order:9;font-size:10.5px;
+    line-height:1.45;display:inline}
+  .side .pct br{display:none}
+  .grid-scroll{padding:6px 3px}
+  .mk{font-size:12px}
 
   .now{padding:12px 13px}
   .now .hd{gap:6px}
@@ -1185,7 +1193,10 @@ function render(){
   const yr=$("yr").value;
   if(yr) rows=rows.filter(r=>r[1].slice(0,4)===yr);
   const n=+$("n").value; if(rows.length>n) rows=rows.slice(-n);
-  document.documentElement.style.setProperty("--cell",$("dens").value+"px");
+  // 手機螢幕窄，同一個「中」在電腦上剛好、在手機上會爆版，所以再收一級
+  const cell=Math.max(16, matchMedia("(max-width:760px)").matches
+    ? +$("dens").value - 4 : +$("dens").value);
+  document.documentElement.style.setProperty("--cell",cell+"px");
 
   /* ── 頂部：現在的狀況（不用捲動就看得到最新） ── */
   const last=rows[rows.length-1];
