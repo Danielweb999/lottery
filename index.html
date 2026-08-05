@@ -70,11 +70,15 @@ select,.btn{font:inherit;font-size:12.5px;padding:4px 9px;border:1px solid #cccc
 select:hover,.btn:hover{border-color:#9a9aa8}
 label{font-size:12px;color:var(--mute)}
 /* 未開累計與開獎明細並列；窄畫面自動疊成上下 */
-.two{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:22px;
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;
  align-items:start}
+/* 大小與單雙並排；四張圖（大樂透、六合彩）就排成 2x2 */
+.roads{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.roads .road{margin-bottom:0}
+.roads .side{flex:0 0 132px;padding:11px 12px}
 .two h2{display:flex;align-items:center;gap:8px;margin:26px 0 8px}
 .two .sub{font-size:11.5px;font-weight:400;color:var(--mute)}
-@media(max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1000px){.two,.roads{grid-template-columns:minmax(0,1fr)}}
 .road{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;
  margin-bottom:16px;background:#fff}
 .road .side{flex:0 0 176px;background:#f4f3f0;border-right:1px solid var(--line);
@@ -197,7 +201,7 @@ tbody tr:hover{background:#f8fafe}
 
 <header><h1>樂透路子圖</h1>
 <span class="tag" id="hdr"></span>
-<span style="font-size:12px;color:var(--mute)">建立於 2026-08-05 14:28 · 資料已內嵌，離線可看</span></header>
+<span style="font-size:12px;color:var(--mute)">建立於 2026-08-05 14:29 · 資料已內嵌，離線可看</span></header>
 
 <div class="tabs" id="tabs"></div>
 
@@ -341,6 +345,7 @@ function render(){
     H+=`</div>`;
   }
 
+  H+=`<div class="roads">`;
   G.charts.forEach(([title,scope,mode],ci)=>{
     const t=G.th[scope], s=seqOf(G,rows,scope,mode);
     const cnt=k=>s.filter(x=>x.raw===k).length;
@@ -351,13 +356,12 @@ function render(){
       side=`<div class="cnt"><span class="c-r">大</span><span class="c-r">${B}</span></div>
         <div class="cnt"><span class="c-b">小</span><span class="c-b">${S}</span></div>`
         +(t.tie!==null?`<div class="cnt"><span class="c-g">和</span><span class="c-g">${T}</span></div>`:"")
-        +`<div class="pct">大 ${pct(B/N)}　小 ${pct(S/N)}${t.tie!==null?"　和 "+pct(T/N):""}<br>
-          理論 ${pct(t.theory.big)} / ${pct(t.theory.small)}${t.tie!==null?" / "+pct(t.theory.tie):""}</div>`;
+        +`<div class="pct">大 ${pct(B/N)}　小 ${pct(S/N)}${t.tie!==null?"<br>和 "+pct(T/N):""}</div>`;
     }else{
       const O=cnt("O"),E=cnt("E");
       side=`<div class="cnt"><span class="c-r">單</span><span class="c-r">${O}</span></div>
         <div class="cnt"><span class="c-b">雙</span><span class="c-b">${E}</span></div>
-        <div class="pct">單 ${pct(O/N)}　雙 ${pct(E/N)}<br>理論 ${pct(t.theory.odd)} / ${pct(t.theory.even)}</div>`;
+        <div class="pct">單 ${pct(O/N)}　雙 ${pct(E/N)}</div>`;
     }
     const sub = mode==="bs"
       ? `小 ≤${t.lo}${t.tie!==null?"　和 "+t.tie:""}　大 ≥${t.hi}`
@@ -366,6 +370,7 @@ function render(){
       <div class="sub">${sub}</div>${side}</div>
       <div class="grid-scroll"><div class="grid" id="g${ci}"></div></div></div>`;
   });
+  H+=`</div>`;
 
   H+=`<div class="legend">
     <span><i class="sw" style="background:var(--red)"></i><b>紅</b> = 大 / 單</span>
@@ -663,7 +668,7 @@ initTabs();initYears();render();
     fetch("status.json?t="+Date.now(),{cache:"no-store"})
       .then(function(r){return r.json();})
       .then(function(s){
-        var mine="2026-08-05 14:28";
+        var mine="2026-08-05 14:29";
         var live=(s.built_at_taipei||"").slice(0,16);
         if(!live||live===mine)return;
         var tried=new URLSearchParams(location.search).get("v");
