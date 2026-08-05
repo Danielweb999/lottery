@@ -591,16 +591,29 @@ def fetch_ca_official(gid, g, years):
     剛好晚一天。這裡統一換算成台灣公布日，兩個來源才會合成同一筆，
     不會在路子圖上變成兩格。
     """
-    n = 60 if RECENT else min(4000, max(400, years * 370))
-    url = ("https://www.calottery.com/api/DrawGameApi/"
-           f"DrawGamePastDrawResults/10/1/{n}")
-    d = json.loads(http(url, retries=2, timeout=45))
-    if not isinstance(d, dict):
-        # 台灣 IP 被擋時這裡會拿到 null，直接講清楚，
-        # 不要讓它變成看不懂的 'NoneType' object has no attribute 'get'
-        raise RuntimeError("官方 API 沒有回傳資料（台灣 IP 通常會被擋）")
+    # 每頁上限就是 20，要求更多它會直接回 null（不是錯誤碼，是空回應）。
+    # 先前寫 60，於是雲端每次都拿到 null，加州因此永遠更新不到。
+    PAGE = 20
+    pages = 1 if RECENT else max(1, min(200, years * 370 // PAGE + 1))
+    raw = []
+    for pg in range(1, pages + 1):
+        url = ("https://www.calottery.com/api/DrawGameApi/"
+               f"DrawGamePastDrawResults/10/{pg}/{PAGE}?ts={int(time.time())}")
+        d = json.loads(http(url, retries=2, timeout=45))
+        if not isinstance(d, dict):
+            if pg == 1:
+                raise RuntimeError("官方 API 回傳空內容（每頁筆數超過上限時會這樣）")
+            break
+        got = d.get("PreviousDraws") or []
+        if not got:
+            break
+        raw += got
+        if len(got) < PAGE:
+            break
+        time.sleep(0.2)
+
     out = []
-    for it in (d.get("PreviousDraws") or []):
+    for it in raw:
         wn = it.get("WinningNumbers") or {}
         try:
             main = [int(wn[k]["Number"]) for k in sorted(wn, key=lambda x: int(x))

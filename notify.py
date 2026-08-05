@@ -249,11 +249,13 @@ def post_discord(url, png_bytes, text, filename="lottery.png"):
     parts.append(b'Content-Disposition: form-data; name="payload_json"\r\n')
     parts.append(b"Content-Type: application/json\r\n\r\n")
     parts.append(payload + b"\r\n")
-    parts.append(f"--{boundary}\r\n".encode())
-    parts.append(f'Content-Disposition: form-data; name="files[0]"; filename="{filename}"\r\n'
-                 .encode())
-    parts.append(b"Content-Type: image/png\r\n\r\n")
-    parts.append(png_bytes + b"\r\n")
+    if png_bytes:                      # 純文字訊息（例如來源異常提醒）不帶圖
+        parts.append(f"--{boundary}\r\n".encode())
+        parts.append(
+            f'Content-Disposition: form-data; name="files[0]"; filename="{filename}"\r\n'
+            .encode())
+        parts.append(b"Content-Type: image/png\r\n\r\n")
+        parts.append(png_bytes + b"\r\n")
     parts.append(f"--{boundary}--\r\n".encode())
     body = b"".join(parts)
     req = urllib.request.Request(url, data=body, method="POST", headers={
@@ -372,6 +374,58 @@ def _start_log(tag):
         pass
 
 
+def warn_bad_sources(state, webhook=None):
+    """來源抓不到時，主動在 Discord 講一聲。
+
+    存在的理由：某個彩種的來源掛掉時，系統的表現是「安靜地什麼都不做」，
+    跟「今天本來就沒開獎」長得一模一樣，結果都是隔了好幾天才被發現。
+    這裡讀 status.json 的抓取回報，有來源失敗就直接說。
+    同一個彩種一天只講一次，不會每 15 分鐘吵你。
+    """
+    p = os.path.join(HERE, "status.json")
+    if not os.path.exists(p):
+        return
+    try:
+        st = json.load(open(p, encoding="utf-8"))
+    except Exception:
+        return
+
+    today = dt.datetime.now(dt.timezone(dt.timedelta(hours=8))).strftime("%Y-%m-%d")
+    bad = [(gid, v) for gid, v in (st.get("fetch") or {}).items()
+           if not v.get("ok")]
+    if not bad:
+        return
+
+    say = [(gid, v) for gid, v in bad
+           if state.get("warned_" + gid) != today]
+    for gid, v in bad:
+        nm = (st.get("games", {}).get(gid) or {}).get("name", gid)
+        print(f"  ⚠ {nm} 抓取失敗：{v.get('error')}")
+    if not say:
+        print("  （今天已經通知過來源異常，不重複打擾）")
+        return
+
+    hook = read_hook(webhook)
+    if not hook:
+        return
+    lines = ["⚠ **有彩種抓不到資料**", f"（{st.get('built_by', '?')}執行，"
+             f"{st.get('built_at_taipei', '?')}）", ""]
+    for gid, v in say:
+        nm = (st.get("games", {}).get(gid) or {}).get("name", gid)
+        lines.append(f"**{nm}**　停在 {v.get('latest') or '無資料'}")
+        lines.append(f"　　{v.get('error')}")
+    lines.append("")
+    lines.append("網站上其他彩種不受影響。同一款一天只提醒一次。")
+    try:
+        post_discord(hook, None, "\n".join(lines))
+        for gid, _ in say:
+            state["warned_" + gid] = today
+        save_state(state)
+        print(f"  已通知來源異常（{len(say)} 個彩種）")
+    except Exception as e:
+        print(f"  來源異常通知送出失敗：{e}")
+
+
 def main():
     _start_log("推播 notify.py")
     ap = argparse.ArgumentParser()
@@ -394,6 +448,8 @@ def main():
 
     games = load_games()
     state = load_state()
+
+    warn_bad_sources(state, a.webhook)
 
     new = []
     for g in games:

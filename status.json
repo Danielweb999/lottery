@@ -1,6 +1,6 @@
 {
- "built_at_taipei": "2026-08-05 12:31:15",
- "built_by": "雲端",
+ "built_at_taipei": "2026-08-05 12:33:38",
+ "built_by": "本機",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
@@ -17,16 +17,16 @@
   },
   "ca_f5": {
    "name": "加州 Fantasy 5",
-   "latest_date": "2026-08-04",
+   "latest_date": "2026-08-05",
    "latest_numbers": [
-    8,
-    16,
     19,
-    24,
-    32
+    23,
+    29,
+    30,
+    38
    ],
    "special": null,
-   "count": 1617
+   "count": 1618
   },
   "tw649": {
    "name": "台灣大樂透",
@@ -84,47 +84,48 @@
   "tw539": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 0,
+   "fetched": 231,
+   "added": 1,
    "latest": "2026-08-04",
    "source_latest": "2026-08-04"
   },
   "ca_f5": {
-   "ok": false,
-   "error": "兩個來源都失敗 — 樂透王：連得上但解析不到資料；官方：官方 API 沒有回傳資料（台灣 IP 通常會被擋）",
-   "fetched": 0,
-   "added": 0,
-   "latest": "2026-08-04"
+   "ok": true,
+   "error": null,
+   "fetched": 217,
+   "added": 1,
+   "latest": "2026-08-05",
+   "source_latest": "2026-08-05"
   },
   "tw649": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 0,
+   "fetched": 107,
+   "added": 1,
    "latest": "2026-08-04",
    "source_latest": "2026-08-04"
   },
   "hk6": {
    "ok": true,
    "error": null,
-   "fetched": 18,
-   "added": 0,
+   "fetched": 98,
+   "added": 1,
    "latest": "2026-08-04",
    "source_latest": "2026-08-04"
   },
   "tw3d": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 0,
+   "fetched": 230,
+   "added": 1,
    "latest": "2026-08-04",
    "source_latest": "2026-08-04"
   },
   "tw4d": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 0,
+   "fetched": 230,
+   "added": 1,
    "latest": "2026-08-04",
    "source_latest": "2026-08-04"
   }
