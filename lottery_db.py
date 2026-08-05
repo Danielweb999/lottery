@@ -1289,8 +1289,10 @@ function render(){
 
   // 號碼分析（選號型彩種專用）
   if(G.kind!=="digit"){
-    H+=`<h2>號碼分析</h2><div class="anz" id="anztabs"></div>
-        <div class="fbox" style="padding:12px 14px;overflow:auto" id="anzbox"></div>`;
+    H+=`<h2><button class="btn" id="anztoggle">號碼分析　▾</button>
+          <span class="sub">走勢圖、尾數頭數、三分區、連莊重複、哥倆好、拖牌…共 10 種</span></h2>
+        <div id="anzwrap" hidden><div class="anz" id="anztabs"></div>
+        <div class="fbox" style="padding:12px 14px;overflow:auto" id="anzbox"></div></div>`;
   }
 
   // 未開累計與開獎明細並列（橫條拉太寬很難讀，各佔一半剛好）
@@ -1446,27 +1448,137 @@ function gapHTML(G,view,sortBy,head){
 
 /* ── 號碼分析：六種常見的看法 ──────────────────────────
    全部都是從已有的開獎資料直接算出來的，不需要另外抓任何東西。*/
-const ANZ=[["trend","走勢分佈圖"],["tail","尾數／頭數"],["zone","三分區"],
-           ["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"]];
-let ANZK="trend", DRAGN=null;
+const ANZ=[["trend","走勢分佈圖"],["stat","出現次數"],["tail","尾數／頭數"],
+           ["zone","三分區"],["ratio","球數單雙比"],["sum","和值分布"],
+           ["run","連號"],["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"]];
+let ANZK="trend", DRAGN=null, PAIRN=0, REPN=0, ANZOPEN=false;
 
 function anzNums(G){return [...Array(G.pool).keys()].map(i=>i+1);}
 function pad2(x){return String(x).padStart(2,"0");}
 
 function paintAnz(){
-  const box=$("anzbox"); if(!box) return;
+  const tg=$("anztoggle");
+  if(tg){
+    tg.textContent="號碼分析　"+(ANZOPEN?"▴":"▾");
+    tg.onclick=()=>{ANZOPEN=!ANZOPEN;paintAnz();};
+    $("anzwrap").hidden=!ANZOPEN;
+  }
+  const box=$("anzbox"); if(!box||!ANZOPEN) return;   // 收合時完全不計算
   const G=DATA[CUR];
   $("anztabs").innerHTML=ANZ.map(([k,t])=>
     `<button class="btn${k===ANZK?" on":""}" data-k="${k}">${t}</button>`).join("");
   $("anztabs").querySelectorAll("button").forEach(b=>
     b.onclick=()=>{ANZK=b.dataset.k;paintAnz();});
-  box.innerHTML=({trend:anzTrend,tail:anzTail,zone:anzZone,
+  box.innerHTML=({trend:anzTrend,stat:anzStat,tail:anzTail,zone:anzZone,
+                  ratio:anzRatio,sum:anzSum,run:anzRun,
                   rep:anzRepeat,pair:anzPair,drag:anzDrag}[ANZK])(G);
-  if(ANZK==="drag"){
-    const sel=$("dragsel");
-    if(sel) sel.onchange=()=>{DRAGN=+sel.value;paintAnz();};
-  }
+  const bind=(id,set)=>{const el=$(id); if(el) el.onchange=()=>{set(+el.value);paintAnz();};};
+  bind("dragsel",v=>DRAGN=v); bind("pairsel",v=>PAIRN=v); bind("repsel",v=>REPN=v);
 }
+
+/* 讓使用者挑一個號碼來看的下拉選單（0 = 全部） */
+function numSel(G,id,cur,label){
+  return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">`+
+    `<span style="font-size:12.5px;color:var(--mute)">${label}</span>`+
+    `<select id="${id}"><option value="0"${cur===0?" selected":""}>全部號碼</option>`+
+    anzNums(G).map(n=>`<option value="${n}"${n===cur?" selected":""}>${pad2(n)}</option>`).join("")+
+    `</select></div>`;
+}
+
+/* 每個號碼的出現次數、目前未開、歷史最長未開、平均間隔 */
+function anzStat(G){
+  const N=G.rows.length, nums=anzNums(G);
+  const cnt={},last={},maxgap={};
+  nums.forEach(n=>{cnt[n]=0;maxgap[n]=0;});
+  G.rows.forEach((r,i)=>{
+    r[2].forEach(n=>{
+      if(last[n]!==undefined) maxgap[n]=Math.max(maxgap[n],i-1-last[n]);
+      else maxgap[n]=Math.max(maxgap[n],i);
+      cnt[n]++; last[n]=i;
+    });
+  });
+  const now=n=>last[n]===undefined?N:N-1-last[n];
+  const rows=nums.map(n=>({n,c:cnt[n],now:now(n),
+    mx:Math.max(maxgap[n],now(n)),avg:cnt[n]?(N/cnt[n]):0}))
+    .sort((a,b)=>b.c-a.c);
+  return `<table class="gt"><tr><th>號碼</th><th>出現次數</th><th>目前未開</th>`+
+    `<th>歷史最長未開</th><th>平均多久一次</th></tr>`+
+    rows.map(x=>`<tr${x.now>=x.mx?' class="hot"':''}><td><span class="ball">${pad2(x.n)}</span></td>`+
+      `<td>${x.c}</td><td>${x.now}</td><td>${x.mx}</td>`+
+      `<td>${x.avg?x.avg.toFixed(1)+" 期":"—"}</td></tr>`).join("")+`</table>`+
+    anzNote(`共 ${N.toLocaleString()} 期，依出現次數排序。紅底＝目前已經追平或超過自己的歷史最長未開紀錄。`);
+}
+
+/* 五顆球裡的單雙比與大小比（跟總和的大小單雙是兩回事） */
+function anzRatio(G){
+  const half=Math.floor(G.pool/2);
+  const mk=(title,f,lab)=>{
+    const c={}, recent=[];
+    G.rows.forEach((r,i)=>{
+      const k=r[2].filter(f).length;
+      const key=`${k}:${r[2].length-k}`;
+      c[key]=(c[key]||0)+1;
+      if(i>=G.rows.length-10) recent.push([r[1],key]);
+    });
+    const N=G.rows.length;
+    return `<div style="font-weight:700;font-size:13px;margin:2px 0 7px">${title}`+
+      `<span style="font-weight:400;font-size:11.5px;color:var(--mute)">　${lab}</span></div>`+
+      `<div class="kv">`+Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,v])=>
+        `<div class="it">${k}<b>${v}</b><span style="color:var(--mute)">`+
+        `${(v/N*100).toFixed(1)}%</span></div>`).join("")+`</div>`+
+      `<div style="font-size:12px;color:var(--mute);margin-top:6px">最近 10 期：`+
+      recent.reverse().map(x=>x[1]).join("　")+`</div>`;
+  };
+  return mk("單雙比",n=>n%2===1,"單:雙")+`<div style="height:16px"></div>`+
+    mk("大小比",n=>n>half,`大(>${half}):小`)+
+    anzNote("這是五顆球本身的比例，跟路子圖看的「總和大小單雙」是不同的東西。");
+}
+
+/* 和值分布 */
+function anzSum(G){
+  const vals=G.rows.map(r=>r[4]);
+  const lo=Math.min(...vals), hi=Math.max(...vals), step=Math.max(1,Math.ceil((hi-lo+1)/16));
+  const bins={};
+  vals.forEach(v=>{const b=Math.floor((v-lo)/step);bins[b]=(bins[b]||0)+1;});
+  const mx=Math.max(...Object.values(bins));
+  const cur=vals[vals.length-1];
+  const curb=Math.floor((cur-lo)/step);
+  let h="";
+  for(let b=0;b*step+lo<=hi;b++){
+    const v=bins[b]||0, a=lo+b*step, z=Math.min(hi,a+step-1);
+    h+=`<div class="gaprow${b===curb?" hot":""}"><span class="no" style="width:auto;`+
+       `min-width:56px;border-radius:6px;font-size:11.5px">${a}-${z}</span>`+
+       `<span class="bw"><span class="bf" style="width:${Math.max(2,Math.round(v/mx*100))}%"></span></span>`+
+       `<span class="nn">${v}</span></div>`;
+  }
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  return h+anzNote(`最新一期總和 ${cur}（紅色那一列）。歷史範圍 ${lo}-${hi}，平均 ${avg.toFixed(1)}。`);
+}
+
+/* 連號：同一期開出相鄰號碼 */
+function anzRun(G){
+  let has=0; const c={}, recent=[];
+  G.rows.forEach((r,i)=>{
+    const a=r[2].slice().sort((x,y)=>x-y);
+    const runs=[];
+    for(let j=1;j<a.length;j++) if(a[j]===a[j-1]+1) runs.push([a[j-1],a[j]]);
+    if(runs.length) has++;
+    c[runs.length]=(c[runs.length]||0)+1;
+    if(i>=G.rows.length-15) recent.push([r[1],runs]);
+  });
+  const N=G.rows.length;
+  return `<div class="kv">`+Object.keys(c).sort().map(k=>
+    `<div class="it">${k} 組連號<b>${c[k]}</b><span style="color:var(--mute)">`+
+    `${(c[k]/N*100).toFixed(1)}%</span></div>`).join("")+`</div>`+
+    `<div style="font-weight:700;font-size:13px;margin:14px 0 7px">最近 15 期</div>`+
+    `<table class="gt"><tr><th>日期</th><th>連號</th></tr>`+
+    recent.reverse().map(([d,rs])=>`<tr><td>${d}</td><td>`+
+      (rs.length?rs.map(p=>`<span class="ball">${pad2(p[0])}</span>`+
+        `<span class="ball">${pad2(p[1])}</span>　`).join(""):
+       `<span style="color:var(--mute)">無</span>`)+`</td></tr>`).join("")+`</table>`+
+    anzNote(`共 ${N.toLocaleString()} 期，其中 ${has} 期（${(has/N*100).toFixed(1)}%）至少有一組連號。`);
+}
+
 function anzNote(t){
   return `<div style="font-size:12px;color:var(--mute);margin-top:9px">${t}</div>`;
 }
@@ -1540,6 +1652,26 @@ function anzZone(G){
 
 /* 4. 連莊重複號：與上一期重複的號碼 */
 function anzRepeat(G){
+  if(REPN){
+    let seen=0, again=0; const list=[];
+    for(let i=1;i<G.rows.length;i++){
+      if(!G.rows[i][2].includes(REPN)) continue;
+      seen++;
+      const back=G.rows[i-1][2].includes(REPN);
+      if(back) again++;
+      if(list.length<15) list.unshift([G.rows[i][1],back]);
+    }
+    return numSel(G,"repsel",REPN,"看單一號碼的連莊情況")+
+      `<div class="kv"><div class="it">開出次數<b>${seen}</b></div>`+
+      `<div class="it">其中連莊<b>${again}</b><span style="color:var(--mute)">`+
+      `${seen?(again/seen*100).toFixed(1):0}%</span></div></div>`+
+      `<div style="font-weight:700;font-size:13px;margin:14px 0 7px">最近 15 次開出</div>`+
+      `<table class="gt"><tr><th>日期</th><th>上一期也開出？</th></tr>`+
+      list.reverse().map(([d,b])=>`<tr><td>${d}</td><td>`+
+        (b?'<b class="c-r">是（連莊）</b>':'<span style="color:var(--mute)">否</span>')+
+        `</td></tr>`).join("")+`</table>`+
+      anzNote(`${pad2(REPN)} 開出後，下一期再度開出的比例即為連莊率。`);
+  }
   const dist={}, list=[];
   for(let i=1;i<G.rows.length;i++){
     const prev=new Set(G.rows[i-1][2]);
@@ -1548,7 +1680,8 @@ function anzRepeat(G){
     if(i>=G.rows.length-15) list.push([G.rows[i][1],same]);
   }
   const N=G.rows.length-1;
-  return `<div class="kv">`+Object.keys(dist).sort().map(k=>
+  return numSel(G,"repsel",REPN,"看單一號碼的連莊情況")+
+    `<div class="kv">`+Object.keys(dist).sort().map(k=>
     `<div class="it">重複 ${k} 個<b>${dist[k]}</b>`+
     `<span style="color:var(--mute)">${(dist[k]/N*100).toFixed(1)}%</span></div>`).join("")+
     `</div><div style="font-weight:700;font-size:13px;margin:14px 0 7px">最近 15 期</div>`+
@@ -1561,6 +1694,22 @@ function anzRepeat(G){
 
 /* 5. 哥倆好：最常一起開出的兩個號碼 */
 function anzPair(G){
+  if(PAIRN){
+    const cnt={}; let base=0;
+    G.rows.forEach(r=>{
+      if(!r[2].includes(PAIRN)) return;
+      base++;
+      r[2].forEach(n=>{ if(n!==PAIRN) cnt[n]=(cnt[n]||0)+1; });
+    });
+    const top=Object.entries(cnt).map(([n,v])=>[+n,v]).sort((a,b)=>b[1]-a[1]).slice(0,18);
+    return numSel(G,"pairsel",PAIRN,"看哪些號碼最常跟它一起開出")+
+      (base?`<div class="kv">`+top.map(([n,v])=>
+        `<div class="it" style="min-width:80px"><span class="ball">${pad2(n)}</span>`+
+        `<b>${v}</b><span style="color:var(--mute)">${(v/base*100).toFixed(1)}%</span></div>`
+        ).join("")+`</div>`+
+        anzNote(`${pad2(PAIRN)} 總共開出 ${base} 次，上面是這 ${base} 期裡同時開出的號碼。`)
+       :anzNote("這個號碼沒有開出過。"));
+  }
   const cnt={};
   G.rows.forEach(r=>{
     const a=r[2].slice().sort((x,y)=>x-y);
@@ -1570,7 +1719,8 @@ function anzPair(G){
   });
   const top=Object.entries(cnt).sort((x,y)=>y[1]-x[1]).slice(0,24);
   const N=G.rows.length;
-  return `<div class="kv">`+top.map(([k,v])=>{
+  return numSel(G,"pairsel",PAIRN,"看哪些號碼最常跟它一起開出")+
+    `<div class="kv">`+top.map(([k,v])=>{
     const [x,y]=k.split(",");
     return `<div class="it" style="min-width:96px">`+
       `<span class="ball">${pad2(x)}</span><span class="ball">${pad2(y)}</span>`+
