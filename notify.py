@@ -266,7 +266,7 @@ def render(games, when):
 
         y += h + 12
 
-    d.text((PAD, H - 32), "資料來源：台灣彩券 / 樂透王 / pilio　每期為獨立事件，歷史型態不具預測力",
+    d.text((PAD, H - 32), "資料來源：台灣彩券 / 樂透王 / 加州官方 / pilio",
            font=F(13), fill=MUTE)
     return img
 

@@ -1074,6 +1074,8 @@ tbody tr:hover{background:#f8fafe}
 <div id="mask" class="mask"><div class="panel">
   <div class="ptop"><b id="ptitle"></b>
     <span style="flex:1"></span>
+    <button class="btn" id="pcopy" style="display:none">複製圖片</button>
+    <button class="btn" id="pdl" style="display:none">下載圖片</button>
     <button class="btn" id="psort" style="display:none">排序：最久沒開</button>
     <button class="btn" id="pswitch" style="display:none">看法：橫條圖</button>
     <button class="btn" id="pclose">關閉</button></div>
@@ -1415,9 +1417,81 @@ function openPanel(kind){
   $("ptitle").textContent=G.name+(kind==="flash"?"　開獎速報":"　未開累計");
   $("pswitch").style.display=kind==="gap"?"":"none";
   $("psort").style.display=kind==="gap"?"":"none";
+  $("pcopy").style.display=$("pdl").style.display=kind==="flash"?"":"none";
   paintPanel();
   $("mask").classList.add("on");
 }
+
+/* 把速報卡轉成圖片。
+   做法是把那段 HTML 包進 SVG 的 foreignObject 再畫到 canvas，
+   全部離線完成，不需要任何外部程式庫，樣式也要一起塞進去才不會走版。*/
+function cardCSS(){
+  return `*{box-sizing:border-box;margin:0}
+  .w{width:660px;padding:20px 24px;background:#fff;
+   font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+   font-size:15px;color:#1c1c1e;line-height:1.6}
+  .t{font-size:19px;font-weight:700;padding-bottom:10px;
+   border-bottom:3px solid #1c1c1e;margin-bottom:6px}
+  .flashline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+   padding:9px 0;border-bottom:1px solid #e3e3e8}
+  .flashline .k{color:#6f6f77;font-size:12.5px;min-width:74px}
+  .pball{display:inline-flex;align-items:center;justify-content:center;
+   width:34px;height:34px;border-radius:50%;background:#1c1c1e;color:#fff;
+   font-weight:700;font-size:14px}
+  .pball.sp{background:#14875a}.pball.cold{background:#5a6f9e}
+  .pill{display:inline-block;padding:2px 9px;border-radius:11px;
+   font-size:12.5px;font-weight:700;color:#fff}
+  .pill.b{background:#c8352b}.pill.s{background:#1f4fd8}.pill.t{background:#14875a}`;
+}
+function cardBlob(cb){
+  const G=DATA[CUR];
+  const html=`<div xmlns="http://www.w3.org/1999/xhtml" class="w">`+
+    `<div class="t">${G.name}　開獎速報</div>${flashHTML(G)}</div>`;
+  const probe=document.createElement("div");
+  probe.style.cssText="position:absolute;left:-9999px;top:0";
+  probe.innerHTML=`<style>${cardCSS()}</style>`+html;
+  document.body.appendChild(probe);
+  const h=Math.ceil(probe.querySelector(".w").getBoundingClientRect().height)+4;
+  probe.remove();
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="660" height="${h}">`+
+    `<foreignObject width="100%" height="100%">`+
+    `<style>${cardCSS()}</style>${html}</foreignObject></svg>`;
+  const img=new Image();
+  img.onload=()=>{
+    const s=2, c=document.createElement("canvas");
+    c.width=660*s; c.height=h*s;
+    const x=c.getContext("2d");
+    x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height);
+    x.scale(s,s); x.drawImage(img,0,0);
+    c.toBlob(b=>cb(b,G),"image/png");
+  };
+  img.onerror=()=>cb(null,G);
+  img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+}
+function flashName(G){
+  return G.name+"_"+G.rows[G.rows.length-1][1]+"_速報.png";
+}
+function tellBtn(el,txt){
+  const old=el.textContent; el.textContent=txt;
+  setTimeout(()=>{el.textContent=old;},1800);
+}
+$("pdl").onclick=()=>cardBlob((b,G)=>{
+  if(!b){tellBtn($("pdl"),"產生失敗");return;}
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(b); a.download=flashName(G);
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  tellBtn($("pdl"),"已下載");
+});
+$("pcopy").onclick=()=>cardBlob(async (b,G)=>{
+  if(!b){tellBtn($("pcopy"),"產生失敗");return;}
+  try{
+    await navigator.clipboard.write([new ClipboardItem({"image/png":b})]);
+    tellBtn($("pcopy"),"已複製");
+  }catch(e){
+    tellBtn($("pcopy"),"改用下載");   // Safari／非 https 不允許寫剪貼簿
+    $("pdl").click();
+  }
+});
 function paintPanel(){
   const G=DATA[CUR];
   $("pbody").innerHTML = PMODE==="flash" ? flashHTML(G) : gapHTML(G,PV,PS,gapHead(G));
