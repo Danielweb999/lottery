@@ -1450,7 +1450,8 @@ function gapHTML(G,view,sortBy,head){
 const ANZ=[["trend","走勢分佈圖"],["stat","出現次數"],["tail","尾數／頭數"],
            ["zone","三分區"],["ratio","球數單雙比"],["sum","和值分布"],
            ["run","連號"],["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"]];
-let ANZK="trend", DRAGN=null, PAIRN=0, REPN=0;
+// ANZK 為 null 代表還沒點任何一項，內容區收起來不顯示也不計算
+let ANZK=null, DRAGN=null, PAIRN=0, REPN=0;
 
 function anzNums(G){return [...Array(G.pool).keys()].map(i=>i+1);}
 function pad2(x){return String(x).padStart(2,"0");}
@@ -1461,7 +1462,11 @@ function paintAnz(){
   $("anztabs").innerHTML=ANZ.map(([k,t])=>
     `<button class="btn${k===ANZK?" on":""}" data-k="${k}">${t}</button>`).join("");
   $("anztabs").querySelectorAll("button").forEach(b=>
-    b.onclick=()=>{ANZK=b.dataset.k;paintAnz();});
+    b.onclick=()=>{ANZK=(ANZK===b.dataset.k?null:b.dataset.k);paintAnz();});
+  if(ANZK===null){                 // 沒點任何一項就完全不算、不顯示
+    box.hidden=true; box.innerHTML=""; return;
+  }
+  box.hidden=false;
   box.innerHTML=({trend:anzTrend,stat:anzStat,tail:anzTail,zone:anzZone,
                   ratio:anzRatio,sum:anzSum,run:anzRun,
                   rep:anzRepeat,pair:anzPair,drag:anzDrag}[ANZK])(G);
