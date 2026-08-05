@@ -383,7 +383,9 @@ def fetch_tw(gid, g, years):
             rows = []
         rows = with_lw_backup(rows, gid, g, years)
         if not rows:
-            raise RuntimeError("pilio 與樂透王都取不到資料")
+            rows = with_988_backup(rows, gid, g, years)
+        if not rows:
+            raise RuntimeError("pilio、樂透王、彩世界三個來源都取不到資料")
         return rows
 
     rows = fetch_taiwan(gid, g, years)
@@ -497,6 +499,67 @@ def parse_lotterywang(text, gid, n_main=5):
                                 "pool": 39, "has_special": False})
 
 
+# ── 彩世界開獎網 988cp：六款全有，當第三來源 ──
+# 版面：08/05(三) → 11959期 → 1923293038（每碼固定兩位黏在一起）
+# 六合彩是 6 碼 + "+" + 特別號；大樂透是 6 碼直接接特別號共 14 位。
+CP_PATH = {"tw539": "DayLotto", "tw649": "BigLotto", "hk6": "MARKSIX",
+           "tw3d": "3D", "tw4d": "4D", "ca_f5": "Fantasy5"}
+_CP_DATE = re.compile(r"(?<!\d)(\d{2})/(\d{2})\s*\([日一二三四五六]\)")
+
+
+def parse_988(text, gid, g):
+    digit = g.get("kind") == "digit"
+    n = g["digits"] if digit else g["n_main"]
+    sp = bool(g.get("has_special"))
+    today = dt.date.today()
+    marks = list(_CP_DATE.finditer(text))
+    out, seen = [], set()
+    for i, m in enumerate(marks):
+        end = marks[i + 1].start() if i + 1 < len(marks) else len(text)
+        seg = text[m.end():end]
+        k = seg.find("期")
+        if k < 0:
+            continue
+        pid = re.sub(r"\D", "", seg[:k])[-12:]
+        body = seg[k + 1:]
+        want = n if digit else n * 2 + (2 if sp else 0)
+        tok = None
+        for t in re.findall(r"[\d+]{%d,%d}" % (want, want + 1), body):
+            d = t.replace("+", "")
+            if len(d) == want:
+                tok = d
+                break
+        if not tok:
+            continue
+        if digit:
+            v = [int(c) for c in tok]
+        else:
+            v = [int(tok[j:j + 2]) for j in range(0, len(tok), 2)]
+            if not all(1 <= x <= g["pool"] for x in v):
+                continue
+        mo, dd = int(m.group(1)), int(m.group(2))
+        y = today.year - (1 if (mo, dd) > (today.month, today.day) else 0)
+        day = f"{y}-{mo:02d}-{dd:02d}"
+        if day in seen:
+            continue
+        seen.add(day)
+        if digit:
+            out.append(mkrow(gid, pid, day, v, None))
+        elif sp:
+            out.append(_mk(gid, pid, day, v[:-1], v[-1]))
+        else:
+            out.append(_mk(gid, pid, day, v, None))
+    return out
+
+
+def fetch_988(gid, g, years):
+    p = CP_PATH.get(gid)
+    if not p:
+        return []
+    url = f"https://hy.988cp.net/history?g={p}"
+    return parse_988(strip_tags(http(url, retries=2, timeout=45)), gid, g)
+
+
 def fetch_lw(gid, g, years):
     """從樂透王抓。每日更新只翻首頁（最近十期，一次連線就夠）。"""
     path = LW_PATH.get(gid)
@@ -539,6 +602,22 @@ def fetch_lw(gid, g, years):
     return out
 
 
+def with_988_backup(rows, gid, g, years):
+    """彩世界開獎網當最後一道防線（六款都支援）。"""
+    try:
+        extra = fetch_988(gid, g, years)
+    except Exception as e:
+        print(f"      彩世界備援失敗：{e}")
+        return rows
+    if not extra:
+        return rows
+    newest = max((r["draw_date"] for r in rows), default=None)
+    more = [r for r in extra if newest is None or r["draw_date"] > newest]
+    print(f"      彩世界備援 {len(extra):,} 期"
+          + (f"，其中 {len(more)} 期更新" if more else "（無更新的）"))
+    return extra + rows
+
+
 def with_lw_backup(rows, gid, g, years):
     """把樂透王的結果併進來。
 
@@ -579,7 +658,9 @@ def fetch_hk(gid, g, years):
         rows = []
     rows = with_lw_backup(rows, gid, g, years)
     if not rows:
-        raise RuntimeError("pilio 與樂透王都取不到六合彩資料")
+        rows = with_988_backup(rows, gid, g, years)
+    if not rows:
+        raise RuntimeError("pilio、樂透王、彩世界三個來源都取不到六合彩資料")
     return rows
 
 
@@ -665,7 +746,9 @@ def fetch_ca(gid, g, years):
         rows += off
 
     if not rows:
-        raise RuntimeError("兩個來源都失敗 — " + "；".join(why))
+        rows = with_988_backup(rows, gid, g, years)
+    if not rows:
+        raise RuntimeError("三個來源都失敗 — " + "；".join(why) + "；彩世界：無資料")
     return rows
 
 
@@ -805,7 +888,7 @@ def build_html(con, force=False):
             th[sc] = dict(lo=lo, tie=tie, hi=hi, theory=theory(g, sc))
         payload[gid] = dict(
             name=g["name"], short=g["short"], kind=g["kind"],
-            pool=g.get("pool"), digits=g.get("digits"),
+            pool=g.get("pool"), digits=g.get("digits"), n_main=g.get("n_main"),
             has_special=bool(g.get("has_special")),
             charts=[list(c) for c in g["charts"]], th=th,
             rows=[[r[0], r[1], json.loads(r[2]), r[3], r[4], r[5]] for r in rows],
@@ -1451,7 +1534,7 @@ const ANZ=[["trend","走勢分佈圖"],["stat","出現次數"],["tail","尾數�
            ["zone","三分區"],["ratio","球數單雙比"],["sum","和值分布"],
            ["run","連號"],["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"]];
 // ANZK 為 null 代表還沒點任何一項，內容區收起來不顯示也不計算
-let ANZK=null, DRAGN=null, PAIRN=0, REPN=0;
+let ANZK=null, DRAGN=null, PAIRN=0, REPN=0;   // DRAGN 是三個號碼的陣列
 
 function anzNums(G){return [...Array(G.pool).keys()].map(i=>i+1);}
 function pad2(x){return String(x).padStart(2,"0");}
@@ -1471,7 +1554,8 @@ function paintAnz(){
                   ratio:anzRatio,sum:anzSum,run:anzRun,
                   rep:anzRepeat,pair:anzPair,drag:anzDrag}[ANZK])(G);
   const bind=(id,set)=>{const el=$(id); if(el) el.onchange=()=>{set(+el.value);paintAnz();};};
-  bind("dragsel",v=>DRAGN=v); bind("pairsel",v=>PAIRN=v); bind("repsel",v=>REPN=v);
+  [0,1,2].forEach(i=>bind("dragsel"+i,v=>{DRAGN=DRAGN.slice();DRAGN[i]=v;}));
+  bind("pairsel",v=>PAIRN=v); bind("repsel",v=>REPN=v);
 }
 
 /* 讓使用者挑一個號碼來看的下拉選單（0 = 全部） */
@@ -1727,29 +1811,45 @@ function anzPair(G){
   anzNote(`共 ${N.toLocaleString()} 期，列出同時開出次數最多的 24 組。`);
 }
 
-/* 6. 拖牌：某號開出後，下一期最常跟著開出哪些號碼 */
+/* 6. 拖牌：指定 1-3 個號碼，看它們「同一期一起開出」之後，
+      下一期最常跟著開出哪些號碼。選越多號碼，符合的期數越少，
+      所以畫面上會一起標出「符合期數」讓你判斷樣本夠不夠。*/
 function anzDrag(G){
   const nums=anzNums(G);
-  if(DRAGN===null) DRAGN=G.rows[G.rows.length-1][2][0];
+  if(DRAGN===null) DRAGN=[G.rows[G.rows.length-1][2][0],0,0];
+  const pick=DRAGN.filter(x=>x>0);
+  const sel=(i)=>`<select id="dragsel${i}"><option value="0"${DRAGN[i]?"":" selected"}>`+
+    (i?"（不指定）":"請選號碼")+`</option>`+
+    nums.map(n=>`<option value="${n}"${n===DRAGN[i]?" selected":""}>${pad2(n)}</option>`).join("")+
+    `</select>`;
+  let h=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">`+
+    `<span style="font-size:12.5px;color:var(--mute)">同一期一起開出</span>`+
+    sel(0)+sel(1)+sel(2)+
+    `<span style="font-size:12.5px;color:var(--mute)">之後，下一期最常跟著開出</span></div>`;
+  if(!pick.length) return h+anzNote("請至少選一個號碼。");
+
   const cnt={}; let base=0;
   for(let i=0;i<G.rows.length-1;i++){
-    if(!G.rows[i][2].includes(DRAGN)) continue;
+    if(!pick.every(n=>G.rows[i][2].includes(n))) continue;
     base++;
     G.rows[i+1][2].forEach(n=>{cnt[n]=(cnt[n]||0)+1;});
   }
+  if(!base) return h+anzNote(`這 ${pick.length} 個號碼在資料範圍內從來沒有同一期一起開出過。`);
   const top=Object.entries(cnt).map(([n,v])=>[+n,v])
     .sort((a,b)=>b[1]-a[1]).slice(0,15);
-  return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">`+
-    `<span style="font-size:12.5px;color:var(--mute)">開出這個號碼</span>`+
-    `<select id="dragsel">`+nums.map(n=>
-      `<option value="${n}"${n===DRAGN?" selected":""}>${pad2(n)}</option>`).join("")+
-    `</select><span style="font-size:12.5px;color:var(--mute)">之後，下一期最常跟著開出</span></div>`+
-    (base?`<div class="kv">`+top.map(([n,v])=>
-      `<div class="it" style="min-width:80px"><span class="ball">${pad2(n)}</span>`+
-      `<b>${v}</b><span style="color:var(--mute)">${(v/base*100).toFixed(1)}%</span></div>`
-      ).join("")+`</div>`+
-      anzNote(`${pad2(DRAGN)} 總共開出 ${base} 次（不含最新一期），上面是這 ${base} 次的下一期統計。`)
-     :anzNote("這個號碼在資料範圍內沒有開出過。"));
+  const exp=(G.n_main||5)/G.pool*100;
+  h+=`<div class="kv" style="margin-bottom:10px">`+
+     `<div class="it">符合期數<b>${base}</b><span style="color:var(--mute)">`+
+     `共 ${G.rows.length.toLocaleString()} 期</span></div></div>`;
+  h+=`<div class="kv">`+top.map(([n,v])=>{
+    const p=v/base*100;
+    return `<div class="it${p>=exp*1.5?" hot":""}" style="min-width:80px">`+
+      `<span class="ball">${pad2(n)}</span><b>${v}</b>`+
+      `<span style="color:var(--mute)">${p.toFixed(1)}%</span></div>`;
+  }).join("")+`</div>`;
+  return h+anzNote(`${pick.map(pad2).join("、")} 一起開出過 ${base} 次，`+
+    `上面是這 ${base} 次的「下一期」統計。平均每個號碼的期望值約 ${exp.toFixed(1)}%，`+
+    `明顯高於期望值的標紅底。`);
 }
 
 /* 號碼查詢：三星彩／四星彩專用

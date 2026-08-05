@@ -423,8 +423,21 @@ def warn_bad_sources(state, webhook=None):
         return
 
     today = dt.datetime.now(dt.timezone(dt.timedelta(hours=8))).strftime("%Y-%m-%d")
+    # 只有「資料真的落後」才叫。來源暫時 403、或半夜跑但本來就沒有新開獎，
+    # 這種抓不到其實不影響任何事，以前照樣發通知，久了就變成雜訊被忽略。
+    daily = {"ca_f5", "tw539", "tw3d", "tw4d"}     # 每天開
+    def behind(gid, v):
+        d = v.get("latest")
+        if not d:
+            return True
+        try:
+            days = (dt.date.today() - dt.date.fromisoformat(d)).days
+        except Exception:
+            return True
+        return days >= (2 if gid in daily else 5)
+
     bad = [(gid, v) for gid, v in (st.get("fetch") or {}).items()
-           if not v.get("ok")]
+           if not v.get("ok") and behind(gid, v)]
     if not bad:
         return
 
