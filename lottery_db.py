@@ -805,6 +805,8 @@ def build_html(con, force=False):
             th[sc] = dict(lo=lo, tie=tie, hi=hi, theory=theory(g, sc))
         payload[gid] = dict(
             name=g["name"], short=g["short"], kind=g["kind"],
+            pool=g.get("pool"), digits=g.get("digits"),
+            has_special=bool(g.get("has_special")),
             charts=[list(c) for c in g["charts"]], th=th,
             rows=[[r[0], r[1], json.loads(r[2]), r[3], r[4], r[5]] for r in rows],
         )
@@ -875,6 +877,40 @@ body{margin:0;background:var(--bg);color:var(--ink);
  font-size:15px;line-height:1.6}
 .wrap{max-width:1240px;margin:0 auto;padding:24px 24px 90px;background:#fff;min-height:100vh;
  box-shadow:0 0 0 1px var(--line)}
+/* 速報／未開累計的浮層 */
+.mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;
+ padding:18px;overflow:auto}
+.mask.on{display:block}
+.panel{max-width:680px;margin:0 auto;background:#fff;border-radius:12px;
+ box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.ptop{display:flex;align-items:center;gap:8px;padding:12px 16px;
+ border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;
+ border-radius:12px 12px 0 0;flex-wrap:wrap}
+#pbody{padding:16px}
+.flashline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+ padding:9px 0;border-bottom:1px solid var(--line)}
+.flashline .k{color:var(--mute);font-size:12.5px;min-width:74px}
+.ball{display:inline-flex;align-items:center;justify-content:center;
+ width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;
+ font-weight:700;font-size:14px}
+.ball.sp{background:var(--green)}
+.pill{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12.5px;
+ font-weight:700;color:#fff}
+.pill.b{background:var(--red)}.pill.s{background:var(--blue)}
+.pill.t{background:var(--green)}
+.gaprow{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12.5px}
+.gaprow .no{width:30px;height:30px;border-radius:50%;flex:0 0 auto;
+ display:flex;align-items:center;justify-content:center;font-weight:700;
+ background:#ececef;font-size:12.5px}
+.gaprow .bw{flex:1;background:#f1f1f4;border-radius:4px;height:15px;position:relative}
+.gaprow .bf{height:100%;border-radius:4px;background:#8aa2d8}
+.gaprow.hot .no{background:var(--red);color:#fff}
+.gaprow.hot .bf{background:var(--red)}
+.gaprow .nn{width:34px;text-align:right;color:var(--mute)}
+table.gt{border-collapse:collapse;width:100%;font-size:13px}
+table.gt th,table.gt td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+table.gt th{color:var(--mute);font-weight:600;cursor:pointer;white-space:nowrap}
+table.gt tr.hot td{background:#fdf0ef;font-weight:700}
 header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
  padding-bottom:13px;border-bottom:3px solid var(--ink)}
 h1{font-size:21px;margin:0;font-weight:700}
@@ -1024,7 +1060,17 @@ tbody tr:hover{background:#f8fafe}
   <button class="btn" id="style">樣式：實心方格</button>
   <button class="btn" id="lang">文字：中文</button>
   <button class="btn" id="toend">跳到最新 →</button>
+  <button class="btn" id="flash">速報</button>
+  <button class="btn" id="gapbtn">未開累計</button>
 </div>
+
+<div id="mask" class="mask"><div class="panel">
+  <div class="ptop"><b id="ptitle"></b>
+    <span style="flex:1"></span>
+    <button class="btn" id="pswitch" style="display:none">看法：橫條圖</button>
+    <button class="btn" id="pclose">關閉</button></div>
+  <div id="pbody"></div>
+</div></div>
 
 <div id="out"></div>
 
@@ -1267,6 +1313,112 @@ $("style").onclick=e=>{document.body.classList.toggle("hollow");
   e.target.textContent="樣式："+(document.body.classList.contains("hollow")?"空心圓圈":"實心方格");};
 $("lang").onclick=e=>{LANG=LANG==="zh"?"en":"zh";
   e.target.textContent="文字："+(LANG==="zh"?"中文":"英文");render();};
+// ══ 速報 / 未開累計 ══════════════════════════════════════
+// 未開累計＝這個號碼距離上次開出，已經過了幾期（截圖上那個「未開期數」）。
+// 選號型彩種算 1..pool 每個號碼；三星彩／四星彩改算 0-9 每個數字
+// （不分位數，任一位出現就算開過）。有特別號的彩種只看正選六顆。
+function gaps(G){
+  const digit = G.kind==="digit";
+  const list = digit ? [...Array(10).keys()]
+                     : [...Array(G.pool).keys()].map(i=>i+1);
+  const last = {};                       // 號碼 → 最近一次開出的列索引
+  G.rows.forEach((r,i)=>{ r[2].forEach(v=>{ last[v]=i; }); });
+  const n = G.rows.length;
+  return list.map(v=>({
+    v,
+    gap: last[v]===undefined ? n : n-1-last[v],
+    date: last[v]===undefined ? null : G.rows[last[v]][1],
+    never: last[v]===undefined
+  }));
+}
+
+function cls(G,scope,mode,row){
+  const t=G.th[scope], s=(scope==="all"?row[5]:row[4]);
+  if(mode==="oe") return s%2 ? ["單","b"] : ["雙","s"];
+  if(t.tie!==null && s===t.tie) return ["和","t"];
+  return s<=t.lo ? ["小","s"] : ["大","b"];
+}
+
+function flashHTML(G){
+  const r=G.rows[G.rows.length-1];
+  const pad=x=>G.kind==="digit"?String(x):String(x).padStart(2,"0");
+  let h=`<div class="flashline"><span class="k">日期</span><b>${r[1]}</b>`+
+        `<span style="color:var(--mute);font-size:12.5px">第 ${r[0]} 期</span></div>`;
+  h+=`<div class="flashline"><span class="k">${G.kind==="digit"?"獎號":"開出號碼"}</span>`+
+     r[2].map(v=>`<span class="ball">${pad(v)}</span>`).join("")+
+     (r[3]!==null&&r[3]!==undefined?`<span class="ball sp">${pad(r[3])}</span>`
+        +`<span style="color:var(--mute);font-size:12px">特別號</span>`:"")+`</div>`;
+  h+=`<div class="flashline"><span class="k">總和</span><b>${r[4]}</b>`+
+     (r[5]!==r[4]?`<span style="color:var(--mute);font-size:12.5px">（含特別號 ${r[5]}）</span>`:"")+`</div>`;
+  G.charts.forEach(c=>{
+    const [txt,k]=cls(G,c[1],c[2],r);
+    h+=`<div class="flashline"><span class="k">${c[0]}</span>`+
+       `<span class="pill ${k}">${txt}</span></div>`;
+  });
+  const cold=gaps(G).sort((a,b)=>b.gap-a.gap).slice(0,8);
+  h+=`<div class="flashline" style="border:none;align-items:flex-start">`+
+     `<span class="k">最久沒開</span><span>`+
+     cold.map(x=>`<span class="ball" style="background:#8aa2d8;margin:2px 3px 2px 0">`+
+       `${pad(x.v)}</span><span style="color:var(--mute);font-size:12px;margin-right:8px">`+
+       `${x.gap}期</span>`).join("")+`</span></div>`;
+  h+=`<div style="color:var(--mute);font-size:12px;margin-top:10px;line-height:1.6">`+
+     `「最久沒開」只是歷史統計。每期都是獨立事件，久沒開的號碼<b>並不會</b>比較容易開出。</div>`;
+  return h;
+}
+
+function gapHTML(G,view,sortBy){
+  const pad=x=>G.kind==="digit"?String(x):String(x).padStart(2,"0");
+  let g=gaps(G);
+  const mx=Math.max(1,...g.map(x=>x.gap));
+  const hot=new Set(g.slice().sort((a,b)=>b.gap-a.gap).slice(0,5).map(x=>x.v));
+  const head=`<div style="color:var(--mute);font-size:12.5px;margin-bottom:10px">`+
+    `共 ${G.rows.length} 期資料，最後一期 ${G.rows[G.rows.length-1][1]}。`+
+    `數字＝距離上次開出已經過幾期，0 代表最新一期就有開。`+
+    (G.kind==="digit"?"（不分位數，任一位出現就算開過）"
+                     :(G.has_special?"（只計正選，不含特別號）":""))+`</div>`;
+  if(view==="bar"){
+    g=g.slice().sort((a,b)=>b.gap-a.gap);
+    return head+g.map(x=>
+      `<div class="gaprow${hot.has(x.v)?" hot":""}"><span class="no">${pad(x.v)}</span>`+
+      `<span class="bw"><span class="bf" style="width:${Math.round(x.gap/mx*100)}%"></span></span>`+
+      `<span class="nn">${x.gap}</span></div>`).join("");
+  }
+  if(sortBy==="no") g=g.slice().sort((a,b)=>a.v-b.v);
+  else g=g.slice().sort((a,b)=>b.gap-a.gap);
+  return head+`<table class="gt"><tr><th data-s="no">號碼 ⇅</th>`+
+    `<th data-s="gap">未開期數 ⇅</th><th>上次開出</th></tr>`+
+    g.map(x=>`<tr class="${hot.has(x.v)?"hot":""}"><td>${pad(x.v)}</td>`+
+      `<td>${x.gap}</td><td>${x.date||"這段期間都沒開過"}</td></tr>`).join("")+`</table>`;
+}
+
+let PV="bar", PS="gap", PMODE="";
+function openPanel(kind){
+  const G=DATA[CUR];
+  PMODE=kind;
+  $("ptitle").textContent=G.name+(kind==="flash"?"　開獎速報":"　未開累計");
+  $("pswitch").style.display=kind==="gap"?"":"none";
+  paintPanel();
+  $("mask").classList.add("on");
+}
+function paintPanel(){
+  const G=DATA[CUR];
+  $("pbody").innerHTML = PMODE==="flash" ? flashHTML(G) : gapHTML(G,PV,PS);
+  $("pswitch").textContent="看法："+(PV==="bar"?"橫條圖":"表格");
+  if(PMODE==="gap"&&PV==="table"){
+    document.querySelectorAll("table.gt th[data-s]").forEach(t=>{
+      t.onclick=()=>{PS=t.dataset.s;paintPanel();};
+    });
+  }
+}
+$("flash").onclick=()=>openPanel("flash");
+$("gapbtn").onclick=()=>openPanel("gap");
+$("pswitch").onclick=()=>{PV=PV==="bar"?"table":"bar";paintPanel();};
+$("pclose").onclick=()=>$("mask").classList.remove("on");
+$("mask").onclick=e=>{ if(e.target===$("mask")) $("mask").classList.remove("on"); };
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape") $("mask").classList.remove("on");
+});
+
 initTabs();initYears();render();
 
 // ── 自動取得最新版 ─────────────────────────────────────────

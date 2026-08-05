@@ -100,6 +100,20 @@ def load_games():
             continue
         hist = list(reversed(r))          # 舊 → 新
         latest = r[0]
+
+        # 未開累計：每個號碼距離上次開出過了幾期。
+        # 為了跟網頁上的數字一致，這裡用全部歷史算，不是只用上面那 40 期。
+        allrows = con.execute(
+            "SELECT numbers FROM draws WHERE game=? ORDER BY draw_date, draw_id",
+            (gid,)).fetchall()
+        pool = (list(range(10)) if g.get("kind") == "digit"
+                else list(range(1, g["pool"] + 1)))
+        seen_at, total = {}, len(allrows)
+        for i, (nums,) in enumerate(allrows):
+            for v in json.loads(nums):
+                seen_at[v] = i
+        gapl = sorted(((v, total if v not in seen_at else total - 1 - seen_at[v])
+                       for v in pool), key=lambda x: -x[1])[:8]
         out.append(dict(
             gid=gid, name=g["name"], cfg=g,
             draw_id=str(latest[0]), date=latest[1],
@@ -108,7 +122,7 @@ def load_games():
             hist=[(json.loads(x[2]), x[3], x[4], x[5]) for x in hist],
             th={sc: dict(zip(("lo", "tie", "hi"), L.thresholds(g, sc)))
                 for sc in {c[1] for c in g["charts"]}},
-            charts=g["charts"],
+            charts=g["charts"], gaps=gapl,
         ))
     con.close()
     return out
@@ -147,7 +161,7 @@ PAD = 26
 
 
 def card_height(g):
-    return 96 + 42 * len(g["charts"])
+    return 96 + 42 * len(g["charts"]) + (34 if g.get("gaps") else 0)
 
 
 def render(games, when):
@@ -232,6 +246,24 @@ def render(games, when):
                     d.rounded_rectangle([x0 - 2, ry + 2, x0 + box + 2, ry + 24], 5,
                                         outline=INK, width=2)
             ry += 42
+
+        # 最久沒開的號碼（未開累計）。純統計，放在最後一列。
+        if g.get("gaps"):
+            d.text((x, ry + 12), "最久沒開", font=F(15), fill=MUTE, anchor="lm")
+            gx = x + 108
+            for nv, gp in g["gaps"]:
+                if gx > W - PAD - 70:
+                    break
+                r = 13
+                d.ellipse([gx, ry - 1, gx + r * 2, ry + r * 2 - 1],
+                          fill=(233, 237, 246), outline=(180, 192, 216))
+                d.text((gx + r, ry + r - 1), str(nv) if digit else f"{nv:02d}",
+                       font=F(13, True), fill=(58, 74, 110), anchor="mm")
+                d.text((gx + r * 2 + 3, ry + 12), f"{gp}", font=F(12),
+                       fill=MUTE, anchor="lm")
+                gx += r * 2 + 10 + (16 if gp < 10 else 22)
+            ry += 34
+
         y += h + 12
 
     d.text((PAD, H - 32), "資料來源：台灣彩券 / 樂透王 / pilio　每期為獨立事件，歷史型態不具預測力",
