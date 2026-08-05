@@ -924,12 +924,22 @@ h1{font-size:21px;margin:0;font-weight:700}
  background:none;cursor:pointer;color:var(--mute);border-radius:7px 7px 0 0}
 .tab.on{background:#fff;border-color:var(--line);color:var(--ink);font-weight:700;
  margin-bottom:-1px;box-shadow:0 -2px 0 var(--ink) inset}
-.bar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:14px 0 15px;
- border-bottom:1px solid var(--line);margin-bottom:18px}
-select,.btn{font:inherit;font-size:13.5px;padding:6px 11px;border:1px solid #ccccd4;
- border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+/* 控制列：原本每個欄位都配一個文字標籤又留大間距，佔掉太多版面。
+   改成緊湊排列，標籤直接寫進選項文字裡（例如「近 120 期」本身就看得懂）。*/
+.bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 0 9px;
+ border-bottom:1px solid var(--line);margin-bottom:14px}
+select,.btn{font:inherit;font-size:12.5px;padding:4px 9px;border:1px solid #ccccd4;
+ border-radius:6px;background:#fff;color:var(--ink);cursor:pointer;line-height:1.5}
+.btn.sm{font-size:11.5px;padding:3px 8px}
+.bar .sep{flex:1}
 select:hover,.btn:hover{border-color:#9a9aa8}
-label{font-size:12.5px;color:var(--mute)}
+label{font-size:12px;color:var(--mute)}
+/* 未開累計與開獎明細並列；窄畫面自動疊成上下 */
+.two{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:22px;
+ align-items:start}
+.two h2{display:flex;align-items:center;gap:8px;margin:26px 0 8px}
+.two .sub{font-size:11.5px;font-weight:400;color:var(--mute)}
+@media(max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
 .road{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;
  margin-bottom:16px;background:#fff}
 .road .side{flex:0 0 176px;background:#f4f3f0;border-right:1px solid var(--line);
@@ -1057,16 +1067,16 @@ tbody tr:hover{background:#f8fafe}
 <div class="tabs" id="tabs"></div>
 
 <div class="bar">
-  <label>期數</label>
   <select id="n"><option value="120">近 120 期</option><option value="200">近 200 期</option>
-  <option value="400">近 400 期</option><option value="99999">全部</option></select>
-  <label>年份</label><select id="yr"><option value="">全部</option></select>
-  <label>格子</label><select id="dens">
-    <option value="28">大</option><option value="22" selected>中</option>
-    <option value="16">小</option><option value="12">最小（整季一覽）</option></select>
-  <button class="btn" id="style">樣式：實心方格</button>
-  <button class="btn" id="lang">文字：中文</button>
+  <option value="400">近 400 期</option><option value="99999">全部期數</option></select>
+  <select id="yr"><option value="">全部年份</option></select>
+  <select id="dens">
+    <option value="28">格子大</option><option value="22" selected>格子中</option>
+    <option value="16">格子小</option><option value="12">格子最小</option></select>
+  <button class="btn" id="style">實心方格</button>
+  <button class="btn" id="lang">中文</button>
   <button class="btn" id="toend">跳到最新 →</button>
+  <span class="sep"></span>
   <button class="btn" id="flash">速報</button>
   <button class="btn" id="gapbtn">未開累計</button>
 </div>
@@ -1091,14 +1101,18 @@ const $=i=>document.getElementById(i);
 let CUR=Object.keys(DATA)[0], LANG="zh";
 const L={zh:{B:"大",S:"小",T:"和",O:"單",E:"雙"},en:{B:"B",S:"S",T:"T",O:"O",E:"E"}};
 
+/* 大路排法：同結果往下長，換結果就開新的一欄。
+   一旦這條連莊撞到底（或下一格被前面的龍尾佔住）而轉向右邊之後，
+   就一路往右走到底，不再回頭往下——中途忽下忽右很容易被誤讀成兩段。*/
 function build(seq,maxRows=6){
-  const occ={},placed=[];let col=0,row=0,startCol=0,prev=null,maxCol=-1,first=true;
+  const occ={},placed=[];
+  let col=0,row=0,startCol=0,prev=null,maxCol=-1,first=true,tailing=false;
   seq.forEach(s=>{
     let tail=false,nc=false;
-    if(first){col=0;row=0;startCol=0;nc=true;first=false;}
-    else if(s.k!==prev){let c=startCol+1;while(occ[c+",0"])c++;col=c;row=0;startCol=c;nc=true;}
-    else if(row+1<maxRows&&!occ[col+","+(row+1)]){row++;}
-    else{let c=col+1;while(occ[c+","+row])c++;col=c;tail=true;}
+    if(first){col=0;row=0;startCol=0;nc=true;first=false;tailing=false;}
+    else if(s.k!==prev){let c=startCol+1;while(occ[c+",0"])c++;col=c;row=0;startCol=c;nc=true;tailing=false;}
+    else if(!tailing&&row+1<maxRows&&!occ[col+","+(row+1)]){row++;}
+    else{let c=col+1;while(occ[c+","+row])c++;col=c;tail=true;tailing=true;}
     occ[col+","+row]=1;maxCol=Math.max(maxCol,col);
     placed.push({c:col,r:row,s,tail,nc});prev=s.k;
   });
@@ -1225,49 +1239,17 @@ function render(){
     <span>同結果往下，換結果換欄，滿 6 格往右拖尾（<b>↳</b>）</span>
     <span>共 ${rows.length.toLocaleString()} 期</span></div>`;
 
-  // 理論值對照
-  H+=`<h2>理論值對照</h2>
-    <div class="fbox"><table><thead><tr><th>項目</th><th class="num">實際次數</th>
-    <th class="num">實際比例</th><th class="num">理論機率</th><th class="num">差距</th>
-    <th class="num">z 值</th><th>判定</th></tr></thead><tbody>`;
-  const all=G.rows;
-  const seen=new Set();
-  G.charts.forEach(([title,scope,mode])=>{
-    const key=scope+mode; if(seen.has(key))return; seen.add(key);
-    const t=G.th[scope];
-    const vals=all.map(r=>scope==="all"?r[5]:r[4]);
-    const N=vals.length;
-    const items = mode==="bs"
-      ? [["大",vals.filter(v=>v>=t.hi).length,t.theory.big],
-         ["小",vals.filter(v=>v<=t.lo).length,t.theory.small]]
-         .concat(t.tie!==null?[["和",vals.filter(v=>v===t.tie).length,t.theory.tie]]:[])
-      : [["單",vals.filter(v=>v%2===1).length,t.theory.odd],
-         ["雙",vals.filter(v=>v%2===0).length,t.theory.even]];
-    items.forEach(([lab,k,p])=>{
-      const obs=k/N, se=Math.sqrt(p*(1-p)/N), z=(obs-p)/se;
-      const ok=Math.abs(z)<1.96;
-      H+=`<tr><td><b>${title.replace(/大小|單雙/,"")||""} ${lab}</b>
-        <span style="color:var(--mute);font-size:11px">${scope==="all"?"7球":"6球"}</span></td>
-        <td class="num">${k.toLocaleString()} / ${N.toLocaleString()}</td>
-        <td class="num">${pct(obs)}</td><td class="num">${pct(p)}</td>
-        <td class="num">${(obs-p>=0?"+":"")+((obs-p)*100).toFixed(2)}pp</td>
-        <td class="num">${z.toFixed(2)}</td>
-        <td><span class="sig ${ok?"ok":"no"}">${ok?"符合理論":"偏離 >2σ"}</span></td></tr>`;
-    });
-  });
-  H+=`</tbody></table></div>`;
+  // 未開累計與開獎明細並列（橫條拉太寬很難讀，各佔一半剛好）
+  H+=`<div class="two">`;
+  H+=`<div><h2>未開累計　<span class="sub">`+
+     (G.kind==="digit"?"0-9，不分位數":(G.has_special?"只計正選":"距上次開出"))+
+     `</span><span style="flex:1"></span>`+
+     `<button class="btn sm" id="mgsort">最久沒開</button>`+
+     `<button class="btn sm" id="mgview">橫條圖</button></h2>
+     <div class="fbox" style="padding:10px 12px;max-height:560px;overflow:auto" id="mgbox"></div></div>`;
 
-  // 未開累計（主畫面版；跟「未開累計」按鍵開出來的是同一段程式）
-  H+=`<h2>未開累計　<span style="font-size:12.5px;font-weight:400;color:var(--mute)">`+
-     `距離上次開出已經過幾期`+
-     (G.kind==="digit"?"（0-9，不分位數）":(G.has_special?"（只計正選）":""))+
-     `</span>　<button class="btn" id="mgsort">排序：最久沒開</button>`+
-     `　<button class="btn" id="mgview">看法：橫條圖</button></h2>
-     <div class="fbox" style="padding:12px 14px" id="mgbox"></div>`;
-
-  // 明細
-  H+=`<h2>開獎明細　<span style="font-size:12.5px;font-weight:400;color:var(--mute)">最近 40 期</span></h2>
-    <div class="fbox" style="max-height:420px;overflow:auto"><table><thead><tr>
+  H+=`<div><h2>開獎明細　<span class="sub">最近 40 期</span></h2>
+    <div class="fbox" style="max-height:560px;overflow:auto"><table><thead><tr>
     <th>日期</th><th>期別</th><th>開出號碼</th><th class="num">6球和</th>`
     +(G.charts.some(c=>c[1]==="all")?`<th class="num">7球和</th>`:``)
     +`<th>大小</th><th>單雙</th></tr></thead><tbody>`;
@@ -1283,7 +1265,7 @@ function render(){
       +(t7?`<td class="num">${r[5]}</td>`:``)
       +`<td>${bs(r[4])}</td><td>${oe(r[4])}</td></tr>`;
   });
-  H+=`</tbody></table></div>`;
+  H+=`</tbody></table></div></div></div>`;
   $("out").innerHTML=H;
   paintMainGap();
   G.charts.forEach(([title,scope,mode],ci)=>{
@@ -1317,9 +1299,9 @@ function initYears(){
 ["n","yr","dens"].forEach(i=>$(i).onchange=render);
 $("toend").onclick=scrollToEnd;
 $("style").onclick=e=>{document.body.classList.toggle("hollow");
-  e.target.textContent="樣式："+(document.body.classList.contains("hollow")?"空心圓圈":"實心方格");};
+  e.target.textContent=document.body.classList.contains("hollow")?"空心圓圈":"實心方格";};
 $("lang").onclick=e=>{LANG=LANG==="zh"?"en":"zh";
-  e.target.textContent="文字："+(LANG==="zh"?"中文":"英文");render();};
+  e.target.textContent=LANG==="zh"?"中文":"英文";render();};
 // ══ 速報 / 未開累計 ══════════════════════════════════════
 // 未開累計＝這個號碼距離上次開出，已經過了幾期（截圖上那個「未開期數」）。
 // 選號型彩種算 1..pool 每個號碼；三星彩／四星彩改算 0-9 每個數字
@@ -1412,8 +1394,8 @@ function paintMainGap(){
   const box=$("mgbox");
   if(!box) return;
   box.innerHTML=gapHTML(DATA[CUR],MV,MS);
-  $("mgview").textContent="看法："+(MV==="bar"?"橫條圖":"表格");
-  $("mgsort").textContent="排序："+(MS==="gap"?"最久沒開":"號碼順序");
+  $("mgview").textContent=MV==="bar"?"橫條圖":"表格";
+  $("mgsort").textContent=MS==="gap"?"最久沒開":"號碼順序";
   $("mgview").onclick=()=>{MV=MV==="bar"?"table":"bar";paintMainGap();};
   $("mgsort").onclick=()=>{MS=MS==="gap"?"no":"gap";paintMainGap();};
   if(MV==="table"){
