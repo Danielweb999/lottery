@@ -977,7 +977,7 @@ body.hollow .mk.g{color:var(--green);border-color:var(--green)}
  padding-bottom:10px;border-bottom:1px solid #e8e2cf}
 .now .hd b{font-size:16px}
 .now .hd .dt{font-size:13px;color:var(--mute)}
-.now .balls .ball{background:#e9edf5;font-weight:700;font-size:13px;min-width:27px;padding:2px 6px}
+.now .balls .ball{width:32px;height:32px;font-size:14px;margin-right:6px}
 .nrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:7px 0;font-size:13.5px}
 .nrow+.nrow{border-top:1px dashed #e8e2cf}
 .nrow .lb{flex:0 0 96px;font-weight:700;font-size:13px}
@@ -1187,8 +1187,7 @@ function render(){
         <span class="lb">${title}</span>
         <span class="st">目前 <b class="c-${clsOf(s[s.length-1])==="b"?"b":clsOf(s[s.length-1])==="r"?"r":"g"}">${L[LANG][s[s.length-1].raw]}</b>
           ｜連 <b>${st.n}</b> 個${lab}</span>
-        <span class="strip">${recent.map(x=>`<i class="${clsOf(x)}" title="${x.tip}">${L[LANG][x.raw]}</i>`).join("")}</span>
-        <span class="arrowhint">← 左邊是最新</span></div>`;
+        <span class="strip">${recent.map(x=>`<i class="${clsOf(x)}" title="${x.tip}">${L[LANG][x.raw]}</i>`).join("")}</span></div>`;
     });
     H+=`</div>`;
   }
@@ -1227,8 +1226,7 @@ function render(){
     <span>共 ${rows.length.toLocaleString()} 期</span></div>`;
 
   // 理論值對照
-  H+=`<h2>理論值對照　<span style="font-size:12.5px;font-weight:400;color:var(--mute)">
-      實際開出比例 vs 數學算出的理論機率（用全部資料，不受上方期數篩選影響）</span></h2>
+  H+=`<h2>理論值對照</h2>
     <div class="fbox"><table><thead><tr><th>項目</th><th class="num">實際次數</th>
     <th class="num">實際比例</th><th class="num">理論機率</th><th class="num">差距</th>
     <th class="num">z 值</th><th>判定</th></tr></thead><tbody>`;
@@ -1351,18 +1349,33 @@ function cls(G,scope,mode,row){
 function flashHTML(G){
   const r=G.rows[G.rows.length-1];
   const pad=x=>G.kind==="digit"?String(x):String(x).padStart(2,"0");
-  let h=`<div class="flashline"><span class="k">日期</span><b>${r[1]}</b>`+
-        `<span style="color:var(--mute);font-size:12.5px">第 ${r[0]} 期</span></div>`;
+  // 期別若跟日期一樣，代表來源沒給正式期別，就不要印出「第 2026-08-04 期」
+  const pid = r[0]===r[1] ? "" :
+    `<span style="color:var(--mute);font-size:12.5px">第 ${r[0]} 期</span>`;
+  let h=`<div class="flashline"><span class="k">日期</span><b>${r[1]}</b>${pid}</div>`;
   h+=`<div class="flashline"><span class="k">${G.kind==="digit"?"獎號":"開出號碼"}</span>`+
      r[2].map(v=>`<span class="pball">${pad(v)}</span>`).join("")+
      (r[3]!==null&&r[3]!==undefined?`<span class="pball sp">${pad(r[3])}</span>`
         +`<span style="color:var(--mute);font-size:12px">特別號</span>`:"")+`</div>`;
   h+=`<div class="flashline"><span class="k">總和</span><b>${r[4]}</b>`+
      (r[5]!==r[4]?`<span style="color:var(--mute);font-size:12.5px">（含特別號 ${r[5]}）</span>`:"")+`</div>`;
+  // 每一種路子：結果 + 目前連幾個 + 近 12 期迷你路子條（跟 Discord 卡片一致）
   G.charts.forEach(c=>{
     const [txt,k]=cls(G,c[1],c[2],r);
+    const s=seqOf(G,G.rows,c[1],c[2]);
+    const st=streakOf(s);
+    const lab=L[LANG][st.raw]||"";
+    const mini=s.slice(-12).reverse().map((x,i)=>{
+      const cc=clsOf(x);
+      const col=cc==="b"?"#1f4fd8":cc==="r"?"#c8352b":"#14875a";
+      return `<i style="display:inline-block;width:19px;height:19px;border-radius:4px;`+
+             `margin-right:3px;background:${col}`+
+             (i===0?";outline:2px solid #1c1c1e;outline-offset:1px":"")+`"></i>`;
+    }).join("");
     h+=`<div class="flashline"><span class="k">${c[0]}</span>`+
-       `<span class="pill ${k}">${txt}</span></div>`;
+       `<span class="pill ${k}">${txt}</span>`+
+       `<span style="color:var(--mute);font-size:12.5px">連 ${st.n} 個${lab}</span>`+
+       `<span style="flex:1"></span><span style="line-height:1">${mini}</span></div>`;
   });
   const cold=gaps(G).sort((a,b)=>b.gap-a.gap).slice(0,8);
   h+=`<div class="flashline" style="border:none;align-items:flex-start">`+
