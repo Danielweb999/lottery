@@ -1289,10 +1289,9 @@ function render(){
 
   // 號碼分析（選號型彩種專用）
   if(G.kind!=="digit"){
-    H+=`<h2><button class="btn" id="anztoggle">號碼分析　▾</button>
-          <span class="sub">走勢圖、尾數頭數、三分區、連莊重複、哥倆好、拖牌…共 10 種</span></h2>
-        <div id="anzwrap" hidden><div class="anz" id="anztabs"></div>
-        <div class="fbox" style="padding:12px 14px;overflow:auto" id="anzbox"></div></div>`;
+    H+=`<h2>號碼分析</h2>
+        <div class="anz" id="anztabs"></div>
+        <div class="fbox" style="padding:12px 14px;overflow:auto" id="anzbox"></div>`;
   }
 
   // 未開累計與開獎明細並列（橫條拉太寬很難讀，各佔一半剛好）
@@ -1451,19 +1450,13 @@ function gapHTML(G,view,sortBy,head){
 const ANZ=[["trend","走勢分佈圖"],["stat","出現次數"],["tail","尾數／頭數"],
            ["zone","三分區"],["ratio","球數單雙比"],["sum","和值分布"],
            ["run","連號"],["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"]];
-let ANZK="trend", DRAGN=null, PAIRN=0, REPN=0, ANZOPEN=false;
+let ANZK="trend", DRAGN=null, PAIRN=0, REPN=0;
 
 function anzNums(G){return [...Array(G.pool).keys()].map(i=>i+1);}
 function pad2(x){return String(x).padStart(2,"0");}
 
 function paintAnz(){
-  const tg=$("anztoggle");
-  if(tg){
-    tg.textContent="號碼分析　"+(ANZOPEN?"▴":"▾");
-    tg.onclick=()=>{ANZOPEN=!ANZOPEN;paintAnz();};
-    $("anzwrap").hidden=!ANZOPEN;
-  }
-  const box=$("anzbox"); if(!box||!ANZOPEN) return;   // 收合時完全不計算
+  const box=$("anzbox"); if(!box) return;
   const G=DATA[CUR];
   $("anztabs").innerHTML=ANZ.map(([k,t])=>
     `<button class="btn${k===ANZK?" on":""}" data-k="${k}">${t}</button>`).join("");
