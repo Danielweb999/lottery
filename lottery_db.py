@@ -1101,7 +1101,6 @@ body.hollow .mk.g{color:var(--green);border-color:var(--green)}
  padding-bottom:10px;border-bottom:1px solid #e8e2cf}
 .now .hd b{font-size:16px}
 .now .hd .dt{font-size:13px;color:var(--mute)}
-.now .balls .ball{width:32px;height:32px;font-size:14px;margin-right:6px}
 .nrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:7px 0;font-size:13.5px}
 .nrow+.nrow{border-top:1px dashed #e8e2cf}
 .nrow .lb{flex:0 0 96px;font-weight:700;font-size:13px}
@@ -1192,7 +1191,21 @@ tbody tr:hover{background:#f8fafe}
 .tab:hover .tico,.tab.on .tico{opacity:1}
 .tab.on{color:#fff}
 .rbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+.topgrid{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:14px}
+.lead{display:flex;flex-direction:column;gap:12px;justify-content:center;
+ background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.lead .hd{border:0;padding:0;margin:0;gap:8px}
+.lfoot{display:flex;align-items:center;gap:8px}
+.balls.big{display:flex;flex-wrap:wrap;gap:9px}
+/* 開獎號碼：白底、彩種色外圈、深色數字。比整顆黑球清楚，也接近實體彩球 */
+.balls.big .ball{width:46px;height:46px;font-size:19px;font-weight:800;margin:0;
+ background:#fff;color:#0f1526;border:3px solid var(--gtint,#2f6fed);
+ box-shadow:0 1px 3px rgba(15,21,38,.12)}
+.balls.big .ball.sp{background:#fffbeb;color:#8a5a00;border-color:#e0a63a}
 .hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.topgrid .hc{margin-top:0}
+.hc1{grid-template-columns:minmax(0,1fr)}
+@media (max-width:900px){.topgrid{grid-template-columns:minmax(0,1fr)}}
 .hc2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .hc4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .now .hd{margin-bottom:0;padding-bottom:12px}
@@ -1430,19 +1443,22 @@ function render(){
   const last=rows[rows.length-1];
   let H="";
   if(last){
-    H+=`<div class="now"><div class="hd">
-      <b style="color:${G.tint}">${G.name}</b><span class="dt">最新一期 ${last[1]}</span>
-      <span class="balls">${last[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")}
-      ${last[3]!==null?`<span class="ball sp">${ballTxt(G,last[3])}</span>`:""}</span>
-      <span class="dt">總和 ${last[4]}${last[5]!==last[4]?` / ${last[5]}`:""}</span>
-      <span style="flex:1"></span>
-      <button class="btn" id="flash">分享速報</button></div>
-      <div class="hc hc${G.charts.length}">`;
+    H+=`<div class="now" style="--gtint:${G.tint}"><div class="topgrid">
+      <div class="lead">
+        <div class="hd"><b style="color:${G.tint}">${G.name}</b>
+          <span class="dt">最新一期 ${last[1]}</span></div>
+        <div class="balls big">${last[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")}
+        ${last[3]!==null?`<span class="ball sp">${ballTxt(G,last[3])}</span>`:""}</div>
+        <div class="lfoot"><span class="dt">總和 ${last[4]}${last[5]!==last[4]?` / ${last[5]}`:""}</span>
+          <span style="flex:1"></span>
+          <button class="btn" id="flash">分享速報</button></div>
+      </div>
+      <div class="hc hc${G.charts.length>2?2:1}">`;
     G.charts.forEach(([title,scope,mode])=>{
       const s=seqOf(G,rows,scope,mode);
       const st=streakOf(s);
       const lab=L[LANG][st.raw]||"—";
-      const recent=s.slice(-14);
+      const recent=s.slice(-10);
       const t0=G.th[scope];
       const rule = mode==="bs"
         ? `小 ≤${t0.lo}${t0.tie!==null?"　和 "+t0.tie:""}　大 ≥${t0.hi}`
@@ -1453,6 +1469,7 @@ function render(){
         <span class="rule">${rule}</span></div>
         <div class="strip">${recent.map(x=>`<i class="${clsOf(x)}" title="${x.tip}">${L[LANG][x.raw]}</i>`).join("")}</div></div>`;
     });
+    H+=`</div>`;
     H+=`</div>`;
     if(G.kind!=="digit") H+=hotCold(G);
     H+=`</div>`;
