@@ -224,23 +224,31 @@ tbody tr:hover{background:#f8fafe}
 /* 最新一期：右側原本一片空白，補上最久沒開，近期條也拉長到 26 期 */
 /* 分頁：彩球圖示帶彩種顏色，文字統一淺色，選中的變白並加底線 */
 .tico{width:17px;height:17px;margin-right:8px;vertical-align:-4px;flex:0 0 auto}
-.tab{display:inline-flex;align-items:center;color:#9fb0cc}
-.tab .tico{opacity:.62;transition:opacity .12s}
+.tab{display:inline-flex;align-items:center;color:#8c9dba;position:relative}
+.tab .tico{opacity:.5;transition:opacity .12s}
 .tab:hover{color:#dbe4f5}
-.tab:hover .tico,.tab.on .tico{opacity:1}
-.tab.on{color:#fff}
+.tab:hover .tico{opacity:.85}
+.tab.on{color:#fff;background:rgba(255,255,255,.10);border-radius:9px 9px 0 0}
+.tab.on .tico{opacity:1;filter:drop-shadow(0 0 5px currentColor)}
 .rbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
-.topgrid{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:14px}
-.lead{display:flex;flex-direction:column;gap:12px;justify-content:center;
- background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
-.lead .hd{border:0;padding:0;margin:0;gap:8px}
-.lfoot{display:flex;align-items:center;gap:8px}
-.balls.big{display:flex;flex-wrap:wrap;gap:9px}
+.topgrid{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:12px}
+.lead{display:flex;flex-direction:column;gap:10px;justify-content:space-between;
+ background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+.lead .hd{border:0;padding:0 0 9px;margin:0;gap:8px;border-bottom:1px solid var(--line)}
+.lfoot{display:flex;align-items:center;gap:8px;padding-top:9px;
+ border-top:1px solid var(--line)}
+.lfoot .dt{font-size:14px;color:var(--ink);font-weight:700}
+.balls.big{display:flex;flex-wrap:nowrap;align-items:center;gap:8px}
+.balls.big .plus{color:var(--mute);font-weight:700;font-size:15px;margin:0 -1px}
+.balls.big.n6 .ball{width:42px;height:42px;font-size:17px}
+.balls.big.n7 .ball{width:38px;height:38px;font-size:15.5px;border-width:2.5px}
+.balls.big.n7{gap:5px}
 /* 開獎號碼：白底、彩種色外圈、深色數字。比整顆黑球清楚，也接近實體彩球 */
 .balls.big .ball{width:46px;height:46px;font-size:19px;font-weight:800;margin:0;
  background:#fff;color:#0f1526;border:3px solid var(--gtint,#2f6fed);
  box-shadow:0 1px 3px rgba(15,21,38,.12)}
-.balls.big .ball.sp{background:#fffbeb;color:#8a5a00;border-color:#e0a63a}
+.balls.big .ball.sp{background:#f4a51c;color:#fff;border-color:#c47f05;
+ box-shadow:0 0 0 3px rgba(244,165,28,.22),0 1px 3px rgba(15,21,38,.15)}
 .hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
 .topgrid .hc{margin-top:0}
 .hc1{grid-template-columns:minmax(0,1fr)}
@@ -291,7 +299,7 @@ header .tag{background:rgba(91,140,255,.18);color:#a9c4ff;border:1px solid rgba(
 .tab{font-size:15px;font-weight:700;padding:11px 18px;border:0;border-radius:0;
  background:transparent;box-shadow:none}
 .tab:hover{background:rgba(255,255,255,.06)}
-.tab.on{background:transparent;box-shadow:inset 0 -3px 0 var(--accent)}
+.tab.on{box-shadow:inset 0 -3px 0 var(--accent)}
 .bar{margin:0 -24px 14px;padding:10px 24px;background:#fff;
  border-bottom:1px solid var(--line);gap:7px}
 select,.btn{border:1px solid #d5dae4;border-radius:8px;font-size:13px;padding:5px 11px;
@@ -328,7 +336,7 @@ thead th{background:#f7f9fc;color:#475569;font-weight:600}
 
 <header><span class="logo"><svg viewBox="0 0 40 40" width="34" height="34" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><rect x="1" y="1" width="38" height="38" rx="11" fill="#0f1526"/><rect x="1" y="1" width="38" height="38" rx="11" fill="none" stroke="url(#lg)" stroke-width="1.6"/><circle cx="14" cy="15" r="5.4" fill="url(#lg)"/><circle cx="26" cy="15" r="5.4" fill="none" stroke="#5b8cff" stroke-width="1.6" opacity=".85"/><rect x="8" y="25" width="8" height="7" rx="2" fill="#5b8cff" opacity=".9"/><rect x="18" y="25" width="6" height="7" rx="2" fill="#8b5cf6" opacity=".8"/><rect x="26" y="25" width="6" height="7" rx="2" fill="#64748b" opacity=".55"/></svg></span><h1>樂透資料網</h1>
 <span class="tag" id="hdr"></span>
-<span id="built" hidden>2026-08-06 14:33</span></header>
+<span id="built" hidden>2026-08-06 14:39</span></header>
 
 <div class="tabs" id="tabs"></div>
 
@@ -486,8 +494,9 @@ function render(){
       <div class="lead">
         <div class="hd"><b style="color:${G.tint}">${G.name}</b>
           <span class="dt">最新一期 ${last[1]}</span></div>
-        <div class="balls big">${last[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")}
-        ${last[3]!==null?`<span class="ball sp">${ballTxt(G,last[3])}</span>`:""}</div>
+        <div class="balls big n${last[2].length + (last[3]!==null?1:0)}">${
+          last[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")}${
+          last[3]!==null?`<span class="plus">＋</span><span class="ball sp">${ballTxt(G,last[3])}</span>`:""}</div>
         <div class="lfoot"><span class="dt">總和 ${last[4]}${last[5]!==last[4]?` / ${last[5]}`:""}</span>
           <span style="flex:1"></span>
           <button class="btn" id="flash">分享速報</button></div>
@@ -1263,7 +1272,7 @@ initTabs();render();
     fetch("status.json?t="+Date.now(),{cache:"no-store"})
       .then(function(r){return r.json();})
       .then(function(s){
-        var mine="2026-08-06 14:33";
+        var mine="2026-08-06 14:39";
         var live=(s.built_at_taipei||"").slice(0,16);
         if(!live||live===mine)return;
         var tried=new URLSearchParams(location.search).get("v");
