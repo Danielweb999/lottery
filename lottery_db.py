@@ -1205,19 +1205,18 @@ tbody tr:hover{background:#f8fafe}
 .balls.big.n7 .ball{width:38px;height:38px;font-size:15.5px;border-width:2.5px}
 .balls.big.n7{gap:5px}
 /* 開獎號碼：白底、彩種色外圈、深色數字。比整顆黑球清楚，也接近實體彩球 */
-/* 立體彩球：球身用彩種色的徑向漸層，左上一點反光，底部一圈陰影 */
+/* 立體彩球：黃色球身＋黑字，外圈用彩種代表色，接近實體樂透球 */
 .balls.big .ball{position:relative;width:46px;height:46px;font-size:19px;font-weight:800;
- margin:0;border:0;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);
- background:radial-gradient(circle at 33% 28%,
-   color-mix(in srgb,var(--gtint,#2f6fed) 25%,#fff) 0%,
-   var(--gtint,#2f6fed) 52%,
-   color-mix(in srgb,var(--gtint,#2f6fed) 72%,#000) 100%);
- box-shadow:inset 0 -3px 6px rgba(0,0,0,.22),0 2px 5px rgba(15,21,38,.28)}
-.balls.big .ball::after{content:"";position:absolute;left:24%;top:15%;
- width:26%;height:20%;border-radius:50%;background:rgba(255,255,255,.6);
- filter:blur(1.5px)}
-.balls.big .ball.sp{background:radial-gradient(circle at 33% 28%,#ffd87a 0%,#f4a51c 52%,#b9760a 100%);
- box-shadow:inset 0 -3px 6px rgba(0,0,0,.22),0 0 0 3px rgba(244,165,28,.25),
+ margin:0;color:#1a1206;text-shadow:0 1px 0 rgba(255,255,255,.55);
+ border:3px solid var(--gtint,#2f6fed);
+ background:radial-gradient(circle at 33% 27%,#fff6d0 0%,#ffd75e 48%,#e8a81f 100%);
+ box-shadow:inset 0 -3px 7px rgba(140,90,0,.3),0 2px 5px rgba(15,21,38,.28)}
+.balls.big .ball::after{content:"";position:absolute;left:22%;top:13%;
+ width:28%;height:21%;border-radius:50%;background:rgba(255,255,255,.75);
+ filter:blur(1.6px)}
+/* 特別號：球身相同，外圈換成紅色並加光暈，一眼分得出來 */
+.balls.big .ball.sp{border-color:#c8352b;
+ box-shadow:inset 0 -3px 7px rgba(140,90,0,.3),0 0 0 3px rgba(200,53,43,.22),
    0 2px 5px rgba(15,21,38,.28)}
 .hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
 .topgrid .hc{margin-top:0}
