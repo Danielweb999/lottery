@@ -53,18 +53,21 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like 
 #       digit = d 位獨立 0-9 數字
 GAMES = {
     "tw539": dict(
+        icon="539",
         tint="#2f6fed",
         name="台灣今彩539", short="今彩539", src="taiwan", ep="Daily539Result",
         kind="pick", pool=39, n_main=5, has_special=False,
         charts=[("大小", "main", "bs"), ("單雙", "main", "oe")],
     ),
     "ca_f5": dict(
+        icon="CA5",
         tint="#8b5cf6",
         name="加州天天樂", short="加州天天樂", src="calottery", ep=None,
         kind="pick", pool=39, n_main=5, has_special=False,
         charts=[("大小", "main", "bs"), ("單雙", "main", "oe")],
     ),
     "tw649": dict(
+        icon="649",
         tint="#d98324",
         name="台灣大樂透", short="大樂透", src="taiwan", ep="Lotto649Result",
         kind="pick", pool=49, n_main=6, has_special=True,
@@ -72,6 +75,7 @@ GAMES = {
                 ("單雙 6球", "main", "oe"), ("單雙 7球", "all", "oe")],
     ),
     "hk6": dict(
+        icon="6",
         tint="#c8352b",
         name="香港六合彩", short="六合彩", src="hkjc", ep=None,
         kind="pick", pool=49, n_main=6, has_special=True,
@@ -79,12 +83,14 @@ GAMES = {
                 ("單雙 6球", "main", "oe"), ("單雙 7球", "all", "oe")],
     ),
     "tw3d": dict(
+        icon="3D",
         tint="#0f9488",
         name="台灣三星彩", short="三星彩", src="taiwan", ep="3DResult",
         kind="digit", digits=3, has_special=False,
         charts=[("大小", "main", "bs"), ("單雙", "main", "oe")],
     ),
     "tw4d": dict(
+        icon="4D",
         tint="#64748b",
         name="台灣四星彩", short="四星彩", src="taiwan", ep="4DResult",
         kind="digit", digits=4, has_special=False,
@@ -895,7 +901,7 @@ def build_html(con, force=False):
         payload[gid] = dict(
             name=g["name"], short=g["short"], kind=g["kind"],
             pool=g.get("pool"), digits=g.get("digits"), n_main=g.get("n_main"),
-            tint=g.get("tint", "#64748b"),
+            tint=g.get("tint", "#64748b"), icon=g.get("icon", ""),
             has_special=bool(g.get("has_special")),
             charts=[list(c) for c in g["charts"]], th=th,
             rows=[[r[0], r[1], json.loads(r[2]), r[3], r[4], r[5]] for r in rows],
@@ -1180,6 +1186,11 @@ tbody tr:hover{background:#f8fafe}
 /* 最新一期：右側原本一片空白，補上最久沒開，近期條也拉長到 26 期 */
 .tab .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;
  vertical-align:1px}
+/* 彩種識別方塊：分頁與「最新一期」用同一個顏色與代號，避免看錯彩種 */
+.gico{display:inline-flex;align-items:center;justify-content:center;
+ min-width:38px;height:26px;padding:0 7px;border-radius:7px;color:#fff;
+ font-weight:700;font-size:12.5px;letter-spacing:.5px}
+.tab .gico{min-width:32px;height:21px;font-size:11px;margin-right:7px;vertical-align:-3px}
 .rbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
 .hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
 .hc2{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1419,7 +1430,8 @@ function render(){
   let H="";
   if(last){
     H+=`<div class="now"><div class="hd">
-      <b>最新一期</b><span class="dt">${last[1]}${last[0]===last[1]?"":"　第 "+last[0]+" 期"}</span>
+      <span class="gico" style="background:${G.tint}">${G.icon}</span>
+      <b>${G.name}</b><span class="dt">最新一期 ${last[1]}</span>
       <span class="balls">${last[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")}
       ${last[3]!==null?`<span class="ball sp">${ballTxt(G,last[3])}</span>`:""}</span>
       <span class="dt">總和 ${last[4]}${last[5]!==last[4]?` / ${last[5]}`:""}</span>
@@ -1561,7 +1573,8 @@ function scrollToEnd(){
 function initTabs(){
   $("tabs").innerHTML=Object.keys(DATA).map((k,i)=>
     `<button class="tab${i===0?" on":""}" data-k="${k}">`+
-    `<i class="dot" style="background:${DATA[k].tint}"></i>${DATA[k].short}</button>`).join("");
+    `<span class="gico" style="background:${DATA[k].tint}">${DATA[k].icon}</span>`+
+    `${DATA[k].short}</button>`).join("");
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
     t.classList.add("on");CUR=t.dataset.k;RB={n:"120",yr:"",dens:RB.dens};render();});
