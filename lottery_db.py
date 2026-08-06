@@ -1184,13 +1184,9 @@ tbody tr:hover{background:#f8fafe}
 }
 
 /* 最新一期：右側原本一片空白，補上最久沒開，近期條也拉長到 26 期 */
-.tab .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;
- vertical-align:1px}
-/* 彩種識別方塊：分頁與「最新一期」用同一個顏色與代號，避免看錯彩種 */
-.gico{display:inline-flex;align-items:center;justify-content:center;
- min-width:38px;height:26px;padding:0 7px;border-radius:7px;color:#fff;
- font-weight:700;font-size:12.5px;letter-spacing:.5px}
-.tab .gico{min-width:32px;height:21px;font-size:11px;margin-right:7px;vertical-align:-3px}
+/* 分頁用彩種代表色標示，選中的再加底線；不另外加代號 */
+.tab{opacity:.72}
+.tab.on,.tab:hover{opacity:1}
 .rbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
 .hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
 .hc2{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1201,6 +1197,7 @@ tbody tr:hover{background:#f8fafe}
 .hcbox{background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:9px 11px}
 .hct{font-size:12.5px;font-weight:700;margin-bottom:7px}
 .hct span{font-weight:400;font-size:11px;color:var(--mute);margin-left:5px}
+.hct .rule{display:block;margin:3px 0 0;font-size:10.5px;color:#94a3b8}
 .hcs{display:flex;flex-wrap:wrap;gap:5px}
 @media (max-width:760px){.hc{grid-template-columns:minmax(0,1fr)}}
 .cold{display:flex;flex-wrap:wrap;gap:5px}
@@ -1235,10 +1232,10 @@ header .tag{background:rgba(91,140,255,.18);color:#a9c4ff;border:1px solid rgba(
  font-size:12.5px;padding:3px 11px;border-radius:999px}
 .tabs{margin:0 -24px;padding:0 22px;background:#182034;border:0;gap:2px;
  overflow-x:auto;white-space:nowrap;display:flex}
-.tab{font-size:15px;font-weight:600;padding:11px 18px;border:0;border-radius:0;
- background:transparent;color:#93a3bd;box-shadow:none}
-.tab:hover{color:#dbe4f5;background:rgba(255,255,255,.05)}
-.tab.on{color:#fff;background:transparent;box-shadow:inset 0 -3px 0 var(--accent)}
+.tab{font-size:15px;font-weight:700;padding:11px 18px;border:0;border-radius:0;
+ background:transparent;box-shadow:none}
+.tab:hover{background:rgba(255,255,255,.06)}
+.tab.on{background:transparent;box-shadow:inset 0 -3px 0 currentColor}
 .bar{margin:0 -24px 14px;padding:10px 24px;background:#fff;
  border-bottom:1px solid var(--line);gap:7px}
 select,.btn{border:1px solid #d5dae4;border-radius:8px;font-size:13px;padding:5px 11px;
@@ -1344,9 +1341,9 @@ function hotCold(G){
   const c={}; anzNums(G).forEach(n=>c[n]=0);
   G.rows.slice(-win).forEach(r=>r[2].forEach(n=>{c[n]=(c[n]||0)+1;}));
   const by=Object.entries(c).map(([n,v])=>[+n,v]);
-  const hot=by.slice().sort((a,b)=>b[1]-a[1]||a[0]-b[0]).slice(0,6);
-  const cool=by.slice().sort((a,b)=>a[1]-b[1]||a[0]-b[0]).slice(0,6);
-  const due=gaps(G).sort((a,b)=>b.gap-a.gap).slice(0,6);
+  const hot=by.slice().sort((a,b)=>b[1]-a[1]||a[0]-b[0]).slice(0,5);
+  const cool=by.slice().sort((a,b)=>a[1]-b[1]||a[0]-b[0]).slice(0,5);
+  const due=gaps(G).sort((a,b)=>b.gap-a.gap).slice(0,5);
   const col=(t,sub,arr,cls)=>`<div class="hcbox"><div class="hct">${t}`+
     `<span>${sub}</span></div><div class="hcs">`+
     arr.map(x=>`<span class="cb ${cls}"><i>${pad2(x[0]!==undefined?x[0]:x.v)}</i>`+
@@ -1430,8 +1427,7 @@ function render(){
   let H="";
   if(last){
     H+=`<div class="now"><div class="hd">
-      <span class="gico" style="background:${G.tint}">${G.icon}</span>
-      <b>${G.name}</b><span class="dt">最新一期 ${last[1]}</span>
+      <b style="color:${G.tint}">${G.name}</b><span class="dt">最新一期 ${last[1]}</span>
       <span class="balls">${last[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")}
       ${last[3]!==null?`<span class="ball sp">${ballTxt(G,last[3])}</span>`:""}</span>
       <span class="dt">總和 ${last[4]}${last[5]!==last[4]?` / ${last[5]}`:""}</span>
@@ -1443,9 +1439,14 @@ function render(){
       const st=streakOf(s);
       const lab=L[LANG][st.raw]||"—";
       const recent=s.slice(-14).reverse();
+      const t0=G.th[scope];
+      const rule = mode==="bs"
+        ? `小 ≤${t0.lo}${t0.tie!==null?"　和 "+t0.tie:""}　大 ≥${t0.hi}`
+        : "總和為奇數＝單，偶數＝雙";
       H+=`<div class="hcbox"><div class="hct">${title}
-        <span>目前 <b class="c-${clsOf(s[s.length-1])==="b"?"b":clsOf(s[s.length-1])==="r"?"r":"g"}">${L[LANG][s[s.length-1].raw]}</b>
-          ｜連 ${st.n} 個${lab}</span></div>
+        <span>本期 <b class="c-${clsOf(s[s.length-1])==="b"?"b":clsOf(s[s.length-1])==="r"?"r":"g"}">${L[LANG][s[s.length-1].raw]}</b>
+          ｜連 ${st.n} 個${lab}</span>
+        <span class="rule">${rule}</span></div>
         <div class="strip">${recent.map(x=>`<i class="${clsOf(x)}" title="${x.tip}">${L[LANG][x.raw]}</i>`).join("")}</div></div>`;
     });
     H+=`</div>`;
@@ -1573,8 +1574,10 @@ function scrollToEnd(){
 function initTabs(){
   $("tabs").innerHTML=Object.keys(DATA).map((k,i)=>
     `<button class="tab${i===0?" on":""}" data-k="${k}">`+
-    `<span class="gico" style="background:${DATA[k].tint}">${DATA[k].icon}</span>`+
     `${DATA[k].short}</button>`).join("");
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.style.color=DATA[t.dataset.k].tint;
+  });
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
     t.classList.add("on");CUR=t.dataset.k;RB={n:"120",yr:"",dens:RB.dens};render();});
