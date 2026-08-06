@@ -1181,8 +1181,12 @@ tbody tr:hover{background:#f8fafe}
 .tab .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;
  vertical-align:1px}
 .rbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
-.hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;
- margin-top:11px;padding-top:12px;border-top:1px solid var(--line)}
+.hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.hc2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.hc4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.now .hd{margin-bottom:0;padding-bottom:12px}
+.hcbox .strip{display:flex;flex-wrap:wrap;gap:3px}
+@media (max-width:900px){.hc,.hc2,.hc4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .hcbox{background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:9px 11px}
 .hct{font-size:12.5px;font-weight:700;margin-bottom:7px}
 .hct span{font-weight:400;font-size:11px;color:var(--mute);margin-left:5px}
@@ -1263,11 +1267,6 @@ thead th{background:#f7f9fc;color:#475569;font-weight:600}
 <span id="built" hidden>__BUILT__</span></header>
 
 <div class="tabs" id="tabs"></div>
-
-<div class="bar">
-  <span class="sep"></span>
-  <button class="btn" id="flash">速報</button>
-</div>
 
 <div id="mask" class="mask"><div class="panel">
   <div class="ptop"><b id="ptitle"></b>
@@ -1424,18 +1423,20 @@ function render(){
       <span class="balls">${last[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")}
       ${last[3]!==null?`<span class="ball sp">${ballTxt(G,last[3])}</span>`:""}</span>
       <span class="dt">總和 ${last[4]}${last[5]!==last[4]?` / ${last[5]}`:""}</span>
-</div>`;
+      <span style="flex:1"></span>
+      <button class="btn" id="flash">分享速報</button></div>
+      <div class="hc hc${G.charts.length}">`;
     G.charts.forEach(([title,scope,mode])=>{
       const s=seqOf(G,rows,scope,mode);
       const st=streakOf(s);
       const lab=L[LANG][st.raw]||"—";
       const recent=s.slice(-14).reverse();
-      H+=`<div class="nrow">
-        <span class="lb">${title}</span>
-        <span class="st">目前 <b class="c-${clsOf(s[s.length-1])==="b"?"b":clsOf(s[s.length-1])==="r"?"r":"g"}">${L[LANG][s[s.length-1].raw]}</b>
-          ｜連 <b>${st.n}</b> 個${lab}</span>
-        <span class="strip">${recent.map(x=>`<i class="${clsOf(x)}" title="${x.tip}">${L[LANG][x.raw]}</i>`).join("")}</span></div>`;
+      H+=`<div class="hcbox"><div class="hct">${title}
+        <span>目前 <b class="c-${clsOf(s[s.length-1])==="b"?"b":clsOf(s[s.length-1])==="r"?"r":"g"}">${L[LANG][s[s.length-1].raw]}</b>
+          ｜連 ${st.n} 個${lab}</span></div>
+        <div class="strip">${recent.map(x=>`<i class="${clsOf(x)}" title="${x.tip}">${L[LANG][x.raw]}</i>`).join("")}</div></div>`;
     });
+    H+=`</div>`;
     if(G.kind!=="digit") H+=hotCold(G);
     H+=`</div>`;
   }
@@ -1535,6 +1536,7 @@ function render(){
   });
   H+=`</tbody></table></div></div></div>`;
   $("out").innerHTML=H;
+  const fb=$("flash"); if(fb) fb.onclick=()=>openPanel("flash");
   paintMainGap();
   bindRoadBar();
   bindQuery();
@@ -2162,7 +2164,6 @@ function gapHead(G){
     (G.kind==="digit"?"（不分位數，任一位出現就算開過）"
                      :(G.has_special?"（只計正選，不含特別號）":""))+`</div>`;
 }
-$("flash").onclick=()=>openPanel("flash");
 $("psort").onclick=()=>{PS=PS==="gap"?"no":"gap";paintPanel();};
 $("pclose").onclick=()=>$("mask").classList.remove("on");
 $("mask").onclick=e=>{ if(e.target===$("mask")) $("mask").classList.remove("on"); };
