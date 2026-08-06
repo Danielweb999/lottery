@@ -2069,7 +2069,6 @@ function openPanel(kind){
   const G=DATA[CUR];
   PMODE=kind;
   $("ptitle").textContent=G.name+(kind==="flash"?"　開獎速報":"　未開累計");
-  $("pswitch").style.display=kind==="gap"?"":"none";
   $("psort").style.display=kind==="gap"?"":"none";
   $("pcopy").style.display=$("pdl").style.display=kind==="flash"?"":"none";
   paintPanel();
@@ -2149,7 +2148,6 @@ $("pcopy").onclick=()=>cardBlob(async (b,G)=>{
 function paintPanel(){
   const G=DATA[CUR];
   $("pbody").innerHTML = PMODE==="flash" ? flashHTML(G) : gapHTML(G,PV,PS,gapHead(G));
-  $("pswitch").textContent="看法："+(PV==="bar"?"橫條圖":"表格");
   $("psort").textContent="排序："+(PS==="gap"?"最久沒開":"號碼順序");
   if(PMODE==="gap"&&PV==="table"){
     document.querySelectorAll("table.gt th[data-s]").forEach(t=>{
@@ -2165,7 +2163,6 @@ function gapHead(G){
                      :(G.has_special?"（只計正選，不含特別號）":""))+`</div>`;
 }
 $("flash").onclick=()=>openPanel("flash");
-$("pswitch").onclick=()=>{PV=PV==="bar"?"table":"bar";paintPanel();};
 $("psort").onclick=()=>{PS=PS==="gap"?"no":"gap";paintPanel();};
 $("pclose").onclick=()=>$("mask").classList.remove("on");
 $("mask").onclick=e=>{ if(e.target===$("mask")) $("mask").classList.remove("on"); };
