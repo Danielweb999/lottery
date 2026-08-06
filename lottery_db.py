@@ -53,33 +53,39 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like 
 #       digit = d 位獨立 0-9 數字
 GAMES = {
     "tw539": dict(
-        name="台灣今彩539", short="539", src="taiwan", ep="Daily539Result",
+        tint="#2f6fed",
+        name="台灣今彩539", short="今彩539", src="taiwan", ep="Daily539Result",
         kind="pick", pool=39, n_main=5, has_special=False,
         charts=[("大小", "main", "bs"), ("單雙", "main", "oe")],
     ),
     "ca_f5": dict(
+        tint="#8b5cf6",
         name="加州天天樂", short="加州天天樂", src="calottery", ep=None,
         kind="pick", pool=39, n_main=5, has_special=False,
         charts=[("大小", "main", "bs"), ("單雙", "main", "oe")],
     ),
     "tw649": dict(
+        tint="#d98324",
         name="台灣大樂透", short="大樂透", src="taiwan", ep="Lotto649Result",
         kind="pick", pool=49, n_main=6, has_special=True,
         charts=[("大小 6球", "main", "bs"), ("大小 7球", "all", "bs"),
                 ("單雙 6球", "main", "oe"), ("單雙 7球", "all", "oe")],
     ),
     "hk6": dict(
+        tint="#c8352b",
         name="香港六合彩", short="六合彩", src="hkjc", ep=None,
         kind="pick", pool=49, n_main=6, has_special=True,
         charts=[("大小 6球", "main", "bs"), ("大小 7球", "all", "bs"),
                 ("單雙 6球", "main", "oe"), ("單雙 7球", "all", "oe")],
     ),
     "tw3d": dict(
+        tint="#0f9488",
         name="台灣三星彩", short="三星彩", src="taiwan", ep="3DResult",
         kind="digit", digits=3, has_special=False,
         charts=[("大小", "main", "bs"), ("單雙", "main", "oe")],
     ),
     "tw4d": dict(
+        tint="#64748b",
         name="台灣四星彩", short="四星彩", src="taiwan", ep="4DResult",
         kind="digit", digits=4, has_special=False,
         charts=[("大小", "main", "bs"), ("單雙", "main", "oe")],
@@ -889,6 +895,7 @@ def build_html(con, force=False):
         payload[gid] = dict(
             name=g["name"], short=g["short"], kind=g["kind"],
             pool=g.get("pool"), digits=g.get("digits"), n_main=g.get("n_main"),
+            tint=g.get("tint", "#64748b"),
             has_special=bool(g.get("has_special")),
             charts=[list(c) for c in g["charts"]], th=th,
             rows=[[r[0], r[1], json.loads(r[2]), r[3], r[4], r[5]] for r in rows],
@@ -951,7 +958,7 @@ HTML_TMPL = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <title>樂透資料網</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20viewBox='0%200%2040%2040'%20width='34'%20height='34'%20aria-hidden='true'%3E%3Cdefs%3E%3ClinearGradient%20id='lg'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%235b8cff'/%3E%3Cstop%20offset='1'%20stop-color='%238b5cf6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20x='1'%20y='1'%20width='38'%20height='38'%20rx='11'%20fill='%230f1526'/%3E%3Crect%20x='1'%20y='1'%20width='38'%20height='38'%20rx='11'%20fill='none'%20stroke='url(%23lg)'%20stroke-width='1.6'/%3E%3Ccircle%20cx='14'%20cy='15'%20r='5.4'%20fill='url(%23lg)'/%3E%3Ccircle%20cx='26'%20cy='15'%20r='5.4'%20fill='none'%20stroke='%235b8cff'%20stroke-width='1.6'%20opacity='.85'/%3E%3Crect%20x='8'%20y='25'%20width='8'%20height='7'%20rx='2'%20fill='%235b8cff'%20opacity='.9'/%3E%3Crect%20x='18'%20y='25'%20width='6'%20height='7'%20rx='2'%20fill='%238b5cf6'%20opacity='.8'/%3E%3Crect%20x='26'%20y='25'%20width='6'%20height='7'%20rx='2'%20fill='%2364748b'%20opacity='.55'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2040%2040%22%20width%3D%2234%22%20height%3D%2234%22%20aria-hidden%3D%22true%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22lg%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%235b8cff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%238b5cf6%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20x%3D%221%22%20y%3D%221%22%20width%3D%2238%22%20height%3D%2238%22%20rx%3D%2211%22%20fill%3D%22%230f1526%22%2F%3E%3Crect%20x%3D%221%22%20y%3D%221%22%20width%3D%2238%22%20height%3D%2238%22%20rx%3D%2211%22%20fill%3D%22none%22%20stroke%3D%22url%28%23lg%29%22%20stroke-width%3D%221.6%22%2F%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2215%22%20r%3D%225.4%22%20fill%3D%22url%28%23lg%29%22%2F%3E%3Ccircle%20cx%3D%2226%22%20cy%3D%2215%22%20r%3D%225.4%22%20fill%3D%22none%22%20stroke%3D%22%235b8cff%22%20stroke-width%3D%221.6%22%20opacity%3D%22.85%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2225%22%20width%3D%228%22%20height%3D%227%22%20rx%3D%222%22%20fill%3D%22%235b8cff%22%20opacity%3D%22.9%22%2F%3E%3Crect%20x%3D%2218%22%20y%3D%2225%22%20width%3D%226%22%20height%3D%227%22%20rx%3D%222%22%20fill%3D%22%238b5cf6%22%20opacity%3D%22.8%22%2F%3E%3Crect%20x%3D%2226%22%20y%3D%2225%22%20width%3D%226%22%20height%3D%227%22%20rx%3D%222%22%20fill%3D%22%2364748b%22%20opacity%3D%22.55%22%2F%3E%3C%2Fsvg%3E">
 <style>
 :root{--blue:#1f4fd8;--red:#c8352b;--green:#14875a;--ink:#1c1c1e;--mute:#6f6f77;
  --line:#e3e3e8;--bg:#f7f6f4;--cell:28px}
@@ -1170,6 +1177,33 @@ tbody tr:hover{background:#f8fafe}
   .warn{padding:12px 13px;font-size:12.5px}
 }
 
+/* 最新一期：右側原本一片空白，補上最久沒開，近期條也拉長到 26 期 */
+.tab .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;
+ vertical-align:1px}
+.rbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+.hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;
+ margin-top:11px;padding-top:12px;border-top:1px solid var(--line)}
+.hcbox{background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.hct{font-size:12.5px;font-weight:700;margin-bottom:7px}
+.hct span{font-weight:400;font-size:11px;color:var(--mute);margin-left:5px}
+.hcs{display:flex;flex-wrap:wrap;gap:5px}
+@media (max-width:760px){.hc{grid-template-columns:minmax(0,1fr)}}
+.cold{display:flex;flex-wrap:wrap;gap:5px}
+.cb{display:inline-flex;align-items:center;gap:4px;background:#f1f4f9;
+ border:1px solid var(--line);border-radius:999px;padding:2px 9px 2px 3px;
+ font-size:11.5px;color:var(--mute)}
+.cb i{display:inline-flex;align-items:center;justify-content:center;
+ width:22px;height:22px;border-radius:50%;background:#5a6f9e;color:#fff;
+ font-style:normal;font-weight:700;font-size:11px}
+.cb.h i{background:#c8352b}.cb.c i{background:#1f4fd8}.cb.d i{background:#64748b}
+.facts{flex:1 1 240px;min-width:200px;font-size:12px;color:var(--mute);
+ display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;padding-left:6px}
+.facts b{color:var(--ink);font-size:12px}
+.facts .dim{color:#94a3b8}
+.facts .dim2{flex:0 0 100%;color:#94a3b8;font-size:11.5px}
+.facts .rec{background:#fde8e6;color:#a8392c;border-radius:5px;padding:1px 6px;
+ font-weight:700;font-size:11px;margin-left:4px}
+@media (max-width:760px){.facts{flex:0 0 100%;padding-left:0}}
 /* ═══ 視覺優化：深色頁首 + 收緊留白 + 放大分頁 ═══ */
 :root{--ink:#0f1526;--mute:#64748b;--line:#e2e5ec;--bg:#eef1f6;
  --accent:#5b8cff;--accent2:#8b5cf6}
@@ -1231,18 +1265,8 @@ thead th{background:#f7f9fc;color:#475569;font-weight:600}
 <div class="tabs" id="tabs"></div>
 
 <div class="bar">
-  <select id="n"><option value="120">近 120 期</option><option value="200">近 200 期</option>
-  <option value="400">近 400 期</option><option value="99999">全部期數</option></select>
-  <select id="yr"><option value="">全部年份</option></select>
-  <select id="dens">
-    <option value="28">格子大</option><option value="22" selected>格子中</option>
-    <option value="16">格子小</option><option value="12">格子最小</option></select>
-  <button class="btn" id="style">實心方格</button>
-  <button class="btn" id="lang">中文</button>
-  <button class="btn" id="toend">跳到最新 →</button>
   <span class="sep"></span>
   <button class="btn" id="flash">速報</button>
-  <button class="btn" id="gapbtn">未開累計</button>
 </div>
 
 <div id="mask" class="mask"><div class="panel">
@@ -1251,8 +1275,7 @@ thead th{background:#f7f9fc;color:#475569;font-weight:600}
     <button class="btn" id="pcopy" style="display:none">複製圖片</button>
     <button class="btn" id="pdl" style="display:none">下載圖片</button>
     <button class="btn" id="psort" style="display:none">排序：最久沒開</button>
-    <button class="btn" id="pswitch" style="display:none">看法：橫條圖</button>
-    <button class="btn" id="pclose">關閉</button></div>
+      <button class="btn" id="pclose">關閉</button></div>
   <div id="pbody"></div>
 </div></div>
 
@@ -1304,6 +1327,48 @@ function draw(el,seq){
     cell.appendChild(m);});
 }
 function pct(x){return (x*100).toFixed(2)+"%";}
+
+/* 冷熱號三欄：熱＝近 60 期最常開，冷＝近 60 期最少開，久＝目前最久未開 */
+function hotCold(G){
+  const win=Math.min(60,G.rows.length);
+  const c={}; anzNums(G).forEach(n=>c[n]=0);
+  G.rows.slice(-win).forEach(r=>r[2].forEach(n=>{c[n]=(c[n]||0)+1;}));
+  const by=Object.entries(c).map(([n,v])=>[+n,v]);
+  const hot=by.slice().sort((a,b)=>b[1]-a[1]||a[0]-b[0]).slice(0,6);
+  const cool=by.slice().sort((a,b)=>a[1]-b[1]||a[0]-b[0]).slice(0,6);
+  const due=gaps(G).sort((a,b)=>b.gap-a.gap).slice(0,6);
+  const col=(t,sub,arr,cls)=>`<div class="hcbox"><div class="hct">${t}`+
+    `<span>${sub}</span></div><div class="hcs">`+
+    arr.map(x=>`<span class="cb ${cls}"><i>${pad2(x[0]!==undefined?x[0]:x.v)}</i>`+
+      `${x[1]!==undefined?x[1]+"次":x.gap+"期"}</span>`).join("")+`</div></div>`;
+  return `<div class="hc">`+
+    col("熱號",`近 ${win} 期最常開`,hot,"h")+
+    col("冷號",`近 ${win} 期最少開`,cool,"c")+
+    col("最久未開","距上次開出",due,"d")+`</div>`;
+}
+
+/* 每一列右側的重點：歷史最長連莊、目前佔比。
+   用全部歷史算（不受上方「近 120 期」影響），因為「破紀錄了沒」
+   要跟整段歷史比才有意義。*/
+function rowFacts(G,scope,mode,st){
+  const all=seqOf(G,G.rows,scope,mode);
+  const best={},cnt={};let cur=null,n=0;
+  all.forEach((x,i)=>{
+    cnt[x.raw]=(cnt[x.raw]||0)+1;
+    if(x.tie) return;                       // 和局不中斷連莊，與路子圖一致
+    if(x.raw===cur){n++;}else{cur=x.raw;n=1;}
+    if(!best[cur]||n>best[cur].n) best[cur]={n,at:G.rows[i][1]};
+  });
+  const b=best[st.raw];
+  const N=all.length;
+  const share=Object.entries(cnt).sort((a,b2)=>b2[1]-a[1])
+    .map(([k,v])=>`${L[LANG][k]} ${(v/N*100).toFixed(1)}%`).join("　");
+  return `<span class="facts">`+
+    (b?`<b>歷史最長</b> 連 ${b.n} 個${L[LANG][st.raw]}`+
+        `<span class="dim">（${b.at}）</span>`+
+        (st.n>=b.n?`<span class="rec">追平紀錄</span>`:``):``)+
+    `<span class="dim2">${share}　共 ${N.toLocaleString()} 期</span></span>`;
+}
 
 /* 由開獎資料算出某一張路子圖的結果序列（舊 → 新） */
 function seqOf(G,rows,scope,mode){
@@ -1358,7 +1423,8 @@ function render(){
       <b>最新一期</b><span class="dt">${last[1]}${last[0]===last[1]?"":"　第 "+last[0]+" 期"}</span>
       <span class="balls">${last[2].map(x=>`<span class="ball">${ballTxt(G,x)}</span>`).join("")}
       ${last[3]!==null?`<span class="ball sp">${ballTxt(G,last[3])}</span>`:""}</span>
-      <span class="dt">總和 ${last[4]}${last[5]!==last[4]?` / ${last[5]}`:""}</span></div>`;
+      <span class="dt">總和 ${last[4]}${last[5]!==last[4]?` / ${last[5]}`:""}</span>
+</div>`;
     G.charts.forEach(([title,scope,mode])=>{
       const s=seqOf(G,rows,scope,mode);
       const st=streakOf(s);
@@ -1370,9 +1436,19 @@ function render(){
           ｜連 <b>${st.n}</b> 個${lab}</span>
         <span class="strip">${recent.map(x=>`<i class="${clsOf(x)}" title="${x.tip}">${L[LANG][x.raw]}</i>`).join("")}</span></div>`;
     });
+    if(G.kind!=="digit") H+=hotCold(G);
     H+=`</div>`;
   }
 
+  H+=`<div class="rbar">
+    <select id="n"><option value="120">近 120 期</option><option value="200">近 200 期</option>
+    <option value="400">近 400 期</option><option value="99999">全部期數</option></select>
+    <select id="yr"><option value="">全部年份</option></select>
+    <select id="dens"><option value="28">格子大</option><option value="22" selected>格子中</option>
+    <option value="16">格子小</option><option value="12">格子最小</option></select>
+    <button class="btn" id="style">實心方格</button>
+    <button class="btn" id="lang">中文</button>
+    <button class="btn" id="toend">跳到最新 →</button></div>`;
   H+=`<div class="roads">`;
   G.charts.forEach(([title,scope,mode],ci)=>{
     const t=G.th[scope], s=seqOf(G,rows,scope,mode);
@@ -1460,13 +1536,14 @@ function render(){
   H+=`</tbody></table></div></div></div>`;
   $("out").innerHTML=H;
   paintMainGap();
+  bindRoadBar();
   bindQuery();
   paintAnz();
   G.charts.forEach(([title,scope,mode],ci)=>{
     draw(document.getElementById("g"+ci), seqOf(G,rows,scope,mode));
   });
   scrollToEnd();
-  $("hdr").textContent=`${DATA[CUR].name} · ${DATA[CUR].rows.length.toLocaleString()} 期`;
+  $("hdr").textContent=DATA[CUR].name;
 }
 
 /* 每次重繪都自動捲到最右邊（最新一期），不必自己拉滑鼠。
@@ -1481,21 +1558,35 @@ function scrollToEnd(){
 
 function initTabs(){
   $("tabs").innerHTML=Object.keys(DATA).map((k,i)=>
-    `<button class="tab${i===0?" on":""}" data-k="${k}">${DATA[k].short}</button>`).join("");
+    `<button class="tab${i===0?" on":""}" data-k="${k}">`+
+    `<i class="dot" style="background:${DATA[k].tint}"></i>${DATA[k].short}</button>`).join("");
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
-    t.classList.add("on");CUR=t.dataset.k;initYears();render();});
+    t.classList.add("on");CUR=t.dataset.k;RB={n:"120",yr:"",dens:RB.dens};render();});
 }
 function initYears(){
+  const el=$("yr"); if(!el) return;
   const ys=[...new Set(DATA[CUR].rows.map(r=>r[1].slice(0,4)))].sort().reverse();
-  $("yr").innerHTML=`<option value="">全部</option>`+ys.map(y=>`<option>${y}</option>`).join("");
+  el.innerHTML=`<option value="">全部年份</option>`+ys.map(y=>`<option>${y}</option>`).join("");
 }
-["n","yr","dens"].forEach(i=>$(i).onchange=render);
-$("toend").onclick=scrollToEnd;
-$("style").onclick=e=>{document.body.classList.toggle("hollow");
-  e.target.textContent=document.body.classList.contains("hollow")?"空心圓圈":"實心方格";};
-$("lang").onclick=e=>{LANG=LANG==="zh"?"en":"zh";
-  e.target.textContent=LANG==="zh"?"中文":"英文";render();};
+let RB={n:"120",yr:"",dens:"22"};
+function bindRoadBar(){
+  ["n","yr","dens"].forEach(i=>{
+    const el=$(i); if(!el) return;
+    if(i==="yr") initYears();
+    el.value=RB[i];
+    el.onchange=()=>{RB[i]=el.value;render();};
+  });
+  const st=$("style");
+  if(st){
+    st.textContent=document.body.classList.contains("hollow")?"空心圓圈":"實心方格";
+    st.onclick=()=>{document.body.classList.toggle("hollow");bindRoadBar();};
+  }
+  const lg=$("lang");
+  if(lg){lg.textContent=LANG==="zh"?"中文":"英文";
+    lg.onclick=()=>{LANG=LANG==="zh"?"en":"zh";render();};}
+  const te=$("toend"); if(te) te.onclick=scrollToEnd;
+}
 // ══ 速報 / 未開累計 ══════════════════════════════════════
 // 未開累計＝這個號碼距離上次開出，已經過了幾期（截圖上那個「未開期數」）。
 // 選號型彩種算 1..pool 每個號碼；三星彩／四星彩改算 0-9 每個數字
@@ -2074,7 +2165,6 @@ function gapHead(G){
                      :(G.has_special?"（只計正選，不含特別號）":""))+`</div>`;
 }
 $("flash").onclick=()=>openPanel("flash");
-$("gapbtn").onclick=()=>openPanel("gap");
 $("pswitch").onclick=()=>{PV=PV==="bar"?"table":"bar";paintPanel();};
 $("psort").onclick=()=>{PS=PS==="gap"?"no":"gap";paintPanel();};
 $("pclose").onclick=()=>$("mask").classList.remove("on");
@@ -2083,7 +2173,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Escape") $("mask").classList.remove("on");
 });
 
-initTabs();initYears();render();
+initTabs();render();
 
 // ── 自動取得最新版 ─────────────────────────────────────────
 // GitHub 的 CDN 會把整頁存起來重複使用約十分鐘，這段期間就算按 F5
