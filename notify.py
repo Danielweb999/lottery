@@ -232,17 +232,17 @@ def render(games, when):
                        fill=(RED if st_lab in ("大", "單") else BLUE), anchor="lm")
             # 近 12 期迷你路子條，最新在最左邊（與網頁上的橫條方向一致）
             recent = []
-            for nums, sp, s6, s7 in reversed(g["hist"][-12:]):
+            for nums, sp, s6, s7 in g["hist"][-12:]:
                 vv = s7 if scope == "all" else s6
                 recent.append(classify(vv, t, mode))
             step, box = 21, 18
             sx = W - PAD - 20 - step * len(recent) + (step - box)
             if ry == y + 90:        # 只在第一列標一次方向，放在球號那一列的右側空白處
-                d.text((sx, y + 72), "近 12 期　左＝最新", font=F(11), fill=MUTE)
+                d.text((sx, y + 72), "近 12 期　右＝最新", font=F(11), fill=MUTE)
             for i, (lab2, col2) in enumerate(recent):
                 x0 = sx + i * step
                 d.rounded_rectangle([x0, ry + 4, x0 + box, ry + 22], 4, fill=col2)
-                if i == 0:          # 最新一期加白框標示
+                if i == len(recent) - 1:    # 最新一期加白框標示
                     d.rounded_rectangle([x0 - 2, ry + 2, x0 + box + 2, ry + 24], 5,
                                         outline=INK, width=2)
             ry += 42

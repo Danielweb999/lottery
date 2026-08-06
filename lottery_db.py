@@ -1205,11 +1205,20 @@ tbody tr:hover{background:#f8fafe}
 .balls.big.n7 .ball{width:38px;height:38px;font-size:15.5px;border-width:2.5px}
 .balls.big.n7{gap:5px}
 /* 開獎號碼：白底、彩種色外圈、深色數字。比整顆黑球清楚，也接近實體彩球 */
-.balls.big .ball{width:46px;height:46px;font-size:19px;font-weight:800;margin:0;
- background:#fff;color:#0f1526;border:3px solid var(--gtint,#2f6fed);
- box-shadow:0 1px 3px rgba(15,21,38,.12)}
-.balls.big .ball.sp{background:#f4a51c;color:#fff;border-color:#c47f05;
- box-shadow:0 0 0 3px rgba(244,165,28,.22),0 1px 3px rgba(15,21,38,.15)}
+/* 立體彩球：球身用彩種色的徑向漸層，左上一點反光，底部一圈陰影 */
+.balls.big .ball{position:relative;width:46px;height:46px;font-size:19px;font-weight:800;
+ margin:0;border:0;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);
+ background:radial-gradient(circle at 33% 28%,
+   color-mix(in srgb,var(--gtint,#2f6fed) 25%,#fff) 0%,
+   var(--gtint,#2f6fed) 52%,
+   color-mix(in srgb,var(--gtint,#2f6fed) 72%,#000) 100%);
+ box-shadow:inset 0 -3px 6px rgba(0,0,0,.22),0 2px 5px rgba(15,21,38,.28)}
+.balls.big .ball::after{content:"";position:absolute;left:24%;top:15%;
+ width:26%;height:20%;border-radius:50%;background:rgba(255,255,255,.6);
+ filter:blur(1.5px)}
+.balls.big .ball.sp{background:radial-gradient(circle at 33% 28%,#ffd87a 0%,#f4a51c 52%,#b9760a 100%);
+ box-shadow:inset 0 -3px 6px rgba(0,0,0,.22),0 0 0 3px rgba(244,165,28,.25),
+   0 2px 5px rgba(15,21,38,.28)}
 .hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
 .topgrid .hc{margin-top:0}
 .hc1{grid-template-columns:minmax(0,1fr)}
@@ -1682,12 +1691,12 @@ function flashHTML(G){
     const s=seqOf(G,G.rows,c[1],c[2]);
     const st=streakOf(s);
     const lab=L[LANG][st.raw]||"";
-    const mini=s.slice(-12).reverse().map((x,i)=>{
+    const mini=s.slice(-12).map((x,i,arr)=>{
       const cc=clsOf(x);
       const col=cc==="b"?"#1f4fd8":cc==="r"?"#c8352b":"#14875a";
       return `<i style="display:inline-block;width:19px;height:19px;border-radius:4px;`+
              `margin-right:3px;background:${col}`+
-             (i===0?";outline:2px solid #1c1c1e;outline-offset:1px":"")+`"></i>`;
+             (i===arr.length-1?";outline:2px solid #1c1c1e;outline-offset:1px":"")+`"></i>`;
     }).join("");
     h+=`<div class="flashline"><span class="k">${c[0]}</span>`+
        `<span class="pill ${k}">${txt}</span>`+
