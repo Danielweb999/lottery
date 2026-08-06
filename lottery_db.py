@@ -951,6 +951,7 @@ HTML_TMPL = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <title>樂透資料網</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20viewBox='0%200%2040%2040'%20width='34'%20height='34'%20aria-hidden='true'%3E%3Cdefs%3E%3ClinearGradient%20id='lg'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%235b8cff'/%3E%3Cstop%20offset='1'%20stop-color='%238b5cf6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20x='1'%20y='1'%20width='38'%20height='38'%20rx='11'%20fill='%230f1526'/%3E%3Crect%20x='1'%20y='1'%20width='38'%20height='38'%20rx='11'%20fill='none'%20stroke='url(%23lg)'%20stroke-width='1.6'/%3E%3Ccircle%20cx='14'%20cy='15'%20r='5.4'%20fill='url(%23lg)'/%3E%3Ccircle%20cx='26'%20cy='15'%20r='5.4'%20fill='none'%20stroke='%235b8cff'%20stroke-width='1.6'%20opacity='.85'/%3E%3Crect%20x='8'%20y='25'%20width='8'%20height='7'%20rx='2'%20fill='%235b8cff'%20opacity='.9'/%3E%3Crect%20x='18'%20y='25'%20width='6'%20height='7'%20rx='2'%20fill='%238b5cf6'%20opacity='.8'/%3E%3Crect%20x='26'%20y='25'%20width='6'%20height='7'%20rx='2'%20fill='%2364748b'%20opacity='.55'/%3E%3C/svg%3E">
 <style>
 :root{--blue:#1f4fd8;--red:#c8352b;--green:#14875a;--ink:#1c1c1e;--mute:#6f6f77;
  --line:#e3e3e8;--bg:#f7f6f4;--cell:28px}
@@ -1168,9 +1169,62 @@ tbody tr:hover{background:#f8fafe}
   .ball{min-width:20px;padding:1px 4px;font-size:11px}
   .warn{padding:12px 13px;font-size:12.5px}
 }
+
+/* ═══ 視覺優化：深色頁首 + 收緊留白 + 放大分頁 ═══ */
+:root{--ink:#0f1526;--mute:#64748b;--line:#e2e5ec;--bg:#eef1f6;
+ --accent:#5b8cff;--accent2:#8b5cf6}
+body{background:var(--bg);
+ font-family:"Noto Sans TC","Microsoft JhengHei",-apple-system,"Segoe UI",sans-serif;
+ font-variant-numeric:tabular-nums}
+.wrap{max-width:1320px;padding:0 0 60px;border-radius:0;box-shadow:none;background:transparent}
+header{margin:0 -24px 0;padding:18px 26px 16px;border:0;
+ background:linear-gradient(120deg,#0f1526 0%,#182034 55%,#1b2440 100%);
+ display:flex;align-items:center;gap:12px}
+.logo{display:flex;line-height:0}
+h1{color:#fff;font-size:20px;letter-spacing:.5px}
+header .tag{background:rgba(91,140,255,.18);color:#a9c4ff;border:1px solid rgba(91,140,255,.35);
+ font-size:12.5px;padding:3px 11px;border-radius:999px}
+.tabs{margin:0 -24px;padding:0 22px;background:#182034;border:0;gap:2px;
+ overflow-x:auto;white-space:nowrap;display:flex}
+.tab{font-size:15px;font-weight:600;padding:11px 18px;border:0;border-radius:0;
+ background:transparent;color:#93a3bd;box-shadow:none}
+.tab:hover{color:#dbe4f5;background:rgba(255,255,255,.05)}
+.tab.on{color:#fff;background:transparent;box-shadow:inset 0 -3px 0 var(--accent)}
+.bar{margin:0 -24px 14px;padding:10px 24px;background:#fff;
+ border-bottom:1px solid var(--line);gap:7px}
+select,.btn{border:1px solid #d5dae4;border-radius:8px;font-size:13px;padding:5px 11px;
+ background:#fff;transition:border-color .12s,background .12s}
+select:hover,.btn:hover{border-color:var(--accent);background:#f7f9ff}
+.anz .btn.on{background:var(--ink);border-color:var(--ink)}
+.wrap>*:not(header):not(.tabs):not(.bar){margin-left:24px;margin-right:24px}
+.now{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+ box-shadow:0 1px 2px rgba(15,21,38,.05)}
+.now .hd{border-bottom:1px solid var(--line)}
+.nrow+.nrow{border-top:1px solid #f1f3f7}
+h2{font-size:16px;font-weight:700;letter-spacing:.3px;border-left:4px solid var(--accent);
+ padding-left:10px;margin:26px 0 9px}
+.fbox,.road{border:1px solid var(--line);border-radius:12px;background:#fff;
+ box-shadow:0 1px 2px rgba(15,21,38,.05)}
+.road .side{background:#f7f9fc}
+.roads .side{border-right:1px solid var(--line)}
+.mk{border-radius:6px;font-weight:600}
+.gc{border-color:#f1f3f7}
+thead th{background:#f7f9fc;color:#475569;font-weight:600}
+.legend{background:#fff;border:1px solid var(--line);border-radius:12px}
+.ball{background:#1e293b}
+.kv .it{background:#f7f9fc;border:1px solid var(--line)}
+.gaprow .bf{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+@media (max-width:760px){
+  header{margin:0 -12px;padding:14px 14px 12px}
+  h1{font-size:17px}
+  .tabs{margin:0 -12px;padding:0 10px}
+  .tab{font-size:14px;padding:10px 13px}
+  .bar{margin:0 -12px 12px;padding:9px 12px}
+  .wrap>*:not(header):not(.tabs):not(.bar){margin-left:0;margin-right:0}
+}
 </style></head><body><div class="wrap">
 
-<header><h1>樂透資料網</h1>
+<header><span class="logo"><svg viewBox="0 0 40 40" width="34" height="34" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><rect x="1" y="1" width="38" height="38" rx="11" fill="#0f1526"/><rect x="1" y="1" width="38" height="38" rx="11" fill="none" stroke="url(#lg)" stroke-width="1.6"/><circle cx="14" cy="15" r="5.4" fill="url(#lg)"/><circle cx="26" cy="15" r="5.4" fill="none" stroke="#5b8cff" stroke-width="1.6" opacity=".85"/><rect x="8" y="25" width="8" height="7" rx="2" fill="#5b8cff" opacity=".9"/><rect x="18" y="25" width="6" height="7" rx="2" fill="#8b5cf6" opacity=".8"/><rect x="26" y="25" width="6" height="7" rx="2" fill="#64748b" opacity=".55"/></svg></span><h1>樂透資料網</h1>
 <span class="tag" id="hdr"></span>
 <span id="built" hidden>__BUILT__</span></header>
 
