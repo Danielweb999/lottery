@@ -305,7 +305,7 @@ thead th{background:#f7f9fc;color:#475569;font-weight:600}
 
 <header><span class="logo"><svg viewBox="0 0 40 40" width="34" height="34" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><rect x="1" y="1" width="38" height="38" rx="11" fill="#0f1526"/><rect x="1" y="1" width="38" height="38" rx="11" fill="none" stroke="url(#lg)" stroke-width="1.6"/><circle cx="14" cy="15" r="5.4" fill="url(#lg)"/><circle cx="26" cy="15" r="5.4" fill="none" stroke="#5b8cff" stroke-width="1.6" opacity=".85"/><rect x="8" y="25" width="8" height="7" rx="2" fill="#5b8cff" opacity=".9"/><rect x="18" y="25" width="6" height="7" rx="2" fill="#8b5cf6" opacity=".8"/><rect x="26" y="25" width="6" height="7" rx="2" fill="#64748b" opacity=".55"/></svg></span><h1>樂透資料網</h1>
 <span class="tag" id="hdr"></span>
-<span id="built" hidden>2026-08-06 13:39</span></header>
+<span id="built" hidden>2026-08-06 13:41</span></header>
 
 <div class="tabs" id="tabs"></div>
 
@@ -452,12 +452,12 @@ function streakOf(s){
 function render(){
   const G=DATA[CUR];
   let rows=G.rows.slice();
-  const yr=$("yr").value;
+  const yr=RB.yr;
   if(yr) rows=rows.filter(r=>r[1].slice(0,4)===yr);
-  const n=+$("n").value; if(rows.length>n) rows=rows.slice(-n);
+  const n=+RB.n; if(rows.length>n) rows=rows.slice(-n);
   // 手機螢幕窄，同一個「中」在電腦上剛好、在手機上會爆版，所以再收一級
   const cell=Math.max(16, matchMedia("(max-width:760px)").matches
-    ? +$("dens").value - 4 : +$("dens").value);
+    ? +RB.dens - 4 : +RB.dens);
   document.documentElement.style.setProperty("--cell",cell+"px");
 
   /* ── 頂部：現在的狀況（不用捲動就看得到最新） ── */
@@ -614,7 +614,6 @@ function initYears(){
   const ys=[...new Set(DATA[CUR].rows.map(r=>r[1].slice(0,4)))].sort().reverse();
   el.innerHTML=`<option value="">全部年份</option>`+ys.map(y=>`<option>${y}</option>`).join("");
 }
-let RB={n:"120",yr:"",dens:"22"};
 function bindRoadBar(){
   ["n","yr","dens"].forEach(i=>{
     const el=$(i); if(!el) return;
@@ -724,7 +723,8 @@ const ANZ=[["trend","走勢分佈圖"],["stat","出現次數"],["tail","尾數�
            ["zone","三分區"],["ratio","球數單雙比"],["sum","和值分布"],
            ["run","連號"],["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"]];
 // ANZK 為 null 代表還沒點任何一項，內容區收起來不顯示也不計算
-let ANZK=null, DRAGN=null, PAIRN=0, REPN=0;   // DRAGN 是三個號碼的陣列
+let ANZK=null, DRAGN=null, PAIRN=0, REPN=0;
+let RB={n:"120",yr:"",dens:"22"};   // 版路控制項的狀態   // DRAGN 是三個號碼的陣列
 
 function anzNums(G){return [...Array(G.pool).keys()].map(i=>i+1);}
 function pad2(x){return String(x).padStart(2,"0");}
@@ -1231,7 +1231,7 @@ initTabs();render();
     fetch("status.json?t="+Date.now(),{cache:"no-store"})
       .then(function(r){return r.json();})
       .then(function(s){
-        var mine="2026-08-06 13:39";
+        var mine="2026-08-06 13:41";
         var live=(s.built_at_taipei||"").slice(0,16);
         if(!live||live===mine)return;
         var tried=new URLSearchParams(location.search).get("v");

@@ -1407,12 +1407,12 @@ function streakOf(s){
 function render(){
   const G=DATA[CUR];
   let rows=G.rows.slice();
-  const yr=$("yr").value;
+  const yr=RB.yr;
   if(yr) rows=rows.filter(r=>r[1].slice(0,4)===yr);
-  const n=+$("n").value; if(rows.length>n) rows=rows.slice(-n);
+  const n=+RB.n; if(rows.length>n) rows=rows.slice(-n);
   // 手機螢幕窄，同一個「中」在電腦上剛好、在手機上會爆版，所以再收一級
   const cell=Math.max(16, matchMedia("(max-width:760px)").matches
-    ? +$("dens").value - 4 : +$("dens").value);
+    ? +RB.dens - 4 : +RB.dens);
   document.documentElement.style.setProperty("--cell",cell+"px");
 
   /* ── 頂部：現在的狀況（不用捲動就看得到最新） ── */
@@ -1569,7 +1569,6 @@ function initYears(){
   const ys=[...new Set(DATA[CUR].rows.map(r=>r[1].slice(0,4)))].sort().reverse();
   el.innerHTML=`<option value="">全部年份</option>`+ys.map(y=>`<option>${y}</option>`).join("");
 }
-let RB={n:"120",yr:"",dens:"22"};
 function bindRoadBar(){
   ["n","yr","dens"].forEach(i=>{
     const el=$(i); if(!el) return;
@@ -1679,7 +1678,8 @@ const ANZ=[["trend","走勢分佈圖"],["stat","出現次數"],["tail","尾數�
            ["zone","三分區"],["ratio","球數單雙比"],["sum","和值分布"],
            ["run","連號"],["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"]];
 // ANZK 為 null 代表還沒點任何一項，內容區收起來不顯示也不計算
-let ANZK=null, DRAGN=null, PAIRN=0, REPN=0;   // DRAGN 是三個號碼的陣列
+let ANZK=null, DRAGN=null, PAIRN=0, REPN=0;
+let RB={n:"120",yr:"",dens:"22"};   // 版路控制項的狀態   // DRAGN 是三個號碼的陣列
 
 function anzNums(G){return [...Array(G.pool).keys()].map(i=>i+1);}
 function pad2(x){return String(x).padStart(2,"0");}
