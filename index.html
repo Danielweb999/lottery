@@ -150,7 +150,7 @@ body.hollow .mk.g{color:var(--green);border-color:var(--green)}
 .strip i{width:22px;height:22px;border-radius:4px;color:#fff;font-size:11.5px;font-weight:700;
  display:flex;align-items:center;justify-content:center;font-style:normal}
 .strip i.b{background:var(--blue)}.strip i.r{background:var(--red)}.strip i.g{background:var(--green)}
-.strip i:first-child{outline:2px solid #111;outline-offset:1px}
+.strip i:last-child{outline:2px solid #111;outline-offset:1px}
 .arrowhint{font-size:11px;color:var(--mute);margin-left:2px}
 h2{font-size:17px;margin:32px 0 10px;padding-left:11px;border-left:5px solid var(--ink)}
 table{border-collapse:collapse;width:100%;font-size:13px}
@@ -223,9 +223,13 @@ tbody tr:hover{background:#f8fafe}
 }
 
 /* 最新一期：右側原本一片空白，補上最久沒開，近期條也拉長到 26 期 */
-/* 分頁用彩種代表色標示，選中的再加底線；不另外加代號 */
-.tab{opacity:.72}
-.tab.on,.tab:hover{opacity:1}
+/* 分頁：彩球圖示帶彩種顏色，文字統一淺色，選中的變白並加底線 */
+.tico{width:17px;height:17px;margin-right:8px;vertical-align:-4px;flex:0 0 auto}
+.tab{display:inline-flex;align-items:center;color:#9fb0cc}
+.tab .tico{opacity:.62;transition:opacity .12s}
+.tab:hover{color:#dbe4f5}
+.tab:hover .tico,.tab.on .tico{opacity:1}
+.tab.on{color:#fff}
 .rbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
 .hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
 .hc2{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -274,7 +278,7 @@ header .tag{background:rgba(91,140,255,.18);color:#a9c4ff;border:1px solid rgba(
 .tab{font-size:15px;font-weight:700;padding:11px 18px;border:0;border-radius:0;
  background:transparent;box-shadow:none}
 .tab:hover{background:rgba(255,255,255,.06)}
-.tab.on{background:transparent;box-shadow:inset 0 -3px 0 currentColor}
+.tab.on{background:transparent;box-shadow:inset 0 -3px 0 var(--accent)}
 .bar{margin:0 -24px 14px;padding:10px 24px;background:#fff;
  border-bottom:1px solid var(--line);gap:7px}
 select,.btn{border:1px solid #d5dae4;border-radius:8px;font-size:13px;padding:5px 11px;
@@ -311,7 +315,7 @@ thead th{background:#f7f9fc;color:#475569;font-weight:600}
 
 <header><span class="logo"><svg viewBox="0 0 40 40" width="34" height="34" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><rect x="1" y="1" width="38" height="38" rx="11" fill="#0f1526"/><rect x="1" y="1" width="38" height="38" rx="11" fill="none" stroke="url(#lg)" stroke-width="1.6"/><circle cx="14" cy="15" r="5.4" fill="url(#lg)"/><circle cx="26" cy="15" r="5.4" fill="none" stroke="#5b8cff" stroke-width="1.6" opacity=".85"/><rect x="8" y="25" width="8" height="7" rx="2" fill="#5b8cff" opacity=".9"/><rect x="18" y="25" width="6" height="7" rx="2" fill="#8b5cf6" opacity=".8"/><rect x="26" y="25" width="6" height="7" rx="2" fill="#64748b" opacity=".55"/></svg></span><h1>樂透資料網</h1>
 <span class="tag" id="hdr"></span>
-<span id="built" hidden>2026-08-06 14:16</span></header>
+<span id="built" hidden>2026-08-06 14:18</span></header>
 
 <div class="tabs" id="tabs"></div>
 
@@ -477,7 +481,7 @@ function render(){
       const s=seqOf(G,rows,scope,mode);
       const st=streakOf(s);
       const lab=L[LANG][st.raw]||"—";
-      const recent=s.slice(-14).reverse();
+      const recent=s.slice(-14);
       const t0=G.th[scope];
       const rule = mode==="bs"
         ? `小 ≤${t0.lo}${t0.tie!==null?"　和 "+t0.tie:""}　大 ≥${t0.hi}`
@@ -613,10 +617,13 @@ function scrollToEnd(){
 function initTabs(){
   $("tabs").innerHTML=Object.keys(DATA).map((k,i)=>
     `<button class="tab${i===0?" on":""}" data-k="${k}">`+
+    `<svg class="tico" viewBox="0 0 20 20" aria-hidden="true">`+
+    `<circle cx="10" cy="10" r="9" fill="${DATA[k].tint}"/>`+
+    `<circle cx="10" cy="10" r="5.4" fill="#fff" opacity=".92"/>`+
+    `<circle cx="10" cy="10" r="2.4" fill="${DATA[k].tint}"/>`+
+    `<path d="M4.6 5.4a9 9 0 0 1 4.2-2.3" stroke="#fff" stroke-width="1.5"
+      stroke-linecap="round" fill="none" opacity=".55"/></svg>`+
     `${DATA[k].short}</button>`).join("");
-  document.querySelectorAll(".tab").forEach(t=>{
-    t.style.color=DATA[t.dataset.k].tint;
-  });
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
     t.classList.add("on");CUR=t.dataset.k;RB={n:"120",yr:"",dens:RB.dens};render();});
@@ -1239,7 +1246,7 @@ initTabs();render();
     fetch("status.json?t="+Date.now(),{cache:"no-store"})
       .then(function(r){return r.json();})
       .then(function(s){
-        var mine="2026-08-06 14:16";
+        var mine="2026-08-06 14:18";
         var live=(s.built_at_taipei||"").slice(0,16);
         if(!live||live===mine)return;
         var tried=new URLSearchParams(location.search).get("v");

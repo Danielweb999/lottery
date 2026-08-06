@@ -1111,7 +1111,7 @@ body.hollow .mk.g{color:var(--green);border-color:var(--green)}
 .strip i{width:22px;height:22px;border-radius:4px;color:#fff;font-size:11.5px;font-weight:700;
  display:flex;align-items:center;justify-content:center;font-style:normal}
 .strip i.b{background:var(--blue)}.strip i.r{background:var(--red)}.strip i.g{background:var(--green)}
-.strip i:first-child{outline:2px solid #111;outline-offset:1px}
+.strip i:last-child{outline:2px solid #111;outline-offset:1px}
 .arrowhint{font-size:11px;color:var(--mute);margin-left:2px}
 h2{font-size:17px;margin:32px 0 10px;padding-left:11px;border-left:5px solid var(--ink)}
 table{border-collapse:collapse;width:100%;font-size:13px}
@@ -1184,9 +1184,13 @@ tbody tr:hover{background:#f8fafe}
 }
 
 /* 最新一期：右側原本一片空白，補上最久沒開，近期條也拉長到 26 期 */
-/* 分頁用彩種代表色標示，選中的再加底線；不另外加代號 */
-.tab{opacity:.72}
-.tab.on,.tab:hover{opacity:1}
+/* 分頁：彩球圖示帶彩種顏色，文字統一淺色，選中的變白並加底線 */
+.tico{width:17px;height:17px;margin-right:8px;vertical-align:-4px;flex:0 0 auto}
+.tab{display:inline-flex;align-items:center;color:#9fb0cc}
+.tab .tico{opacity:.62;transition:opacity .12s}
+.tab:hover{color:#dbe4f5}
+.tab:hover .tico,.tab.on .tico{opacity:1}
+.tab.on{color:#fff}
 .rbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
 .hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
 .hc2{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1235,7 +1239,7 @@ header .tag{background:rgba(91,140,255,.18);color:#a9c4ff;border:1px solid rgba(
 .tab{font-size:15px;font-weight:700;padding:11px 18px;border:0;border-radius:0;
  background:transparent;box-shadow:none}
 .tab:hover{background:rgba(255,255,255,.06)}
-.tab.on{background:transparent;box-shadow:inset 0 -3px 0 currentColor}
+.tab.on{background:transparent;box-shadow:inset 0 -3px 0 var(--accent)}
 .bar{margin:0 -24px 14px;padding:10px 24px;background:#fff;
  border-bottom:1px solid var(--line);gap:7px}
 select,.btn{border:1px solid #d5dae4;border-radius:8px;font-size:13px;padding:5px 11px;
@@ -1438,7 +1442,7 @@ function render(){
       const s=seqOf(G,rows,scope,mode);
       const st=streakOf(s);
       const lab=L[LANG][st.raw]||"—";
-      const recent=s.slice(-14).reverse();
+      const recent=s.slice(-14);
       const t0=G.th[scope];
       const rule = mode==="bs"
         ? `小 ≤${t0.lo}${t0.tie!==null?"　和 "+t0.tie:""}　大 ≥${t0.hi}`
@@ -1574,10 +1578,13 @@ function scrollToEnd(){
 function initTabs(){
   $("tabs").innerHTML=Object.keys(DATA).map((k,i)=>
     `<button class="tab${i===0?" on":""}" data-k="${k}">`+
+    `<svg class="tico" viewBox="0 0 20 20" aria-hidden="true">`+
+    `<circle cx="10" cy="10" r="9" fill="${DATA[k].tint}"/>`+
+    `<circle cx="10" cy="10" r="5.4" fill="#fff" opacity=".92"/>`+
+    `<circle cx="10" cy="10" r="2.4" fill="${DATA[k].tint}"/>`+
+    `<path d="M4.6 5.4a9 9 0 0 1 4.2-2.3" stroke="#fff" stroke-width="1.5"
+      stroke-linecap="round" fill="none" opacity=".55"/></svg>`+
     `${DATA[k].short}</button>`).join("");
-  document.querySelectorAll(".tab").forEach(t=>{
-    t.style.color=DATA[t.dataset.k].tint;
-  });
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
     t.classList.add("on");CUR=t.dataset.k;RB={n:"120",yr:"",dens:RB.dens};render();});
