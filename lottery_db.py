@@ -1192,7 +1192,11 @@ tbody tr:hover{background:#f8fafe}
 .tab.on{color:#fff;background:rgba(255,255,255,.10);border-radius:9px 9px 0 0}
 .tab.on .tico{opacity:1;filter:drop-shadow(0 0 5px currentColor)}
 .rbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
-.topgrid{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:12px}
+/* 上排與下排共用同一組三欄格線：左卡＝1 欄，大小單雙＝2 欄，
+   這樣左卡的右緣會跟下面「熱號」那一格切齊。*/
+.topgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.lead{grid-column:span 1}
+.topgrid .hc{grid-column:span 2}
 .lead{display:flex;flex-direction:column;gap:10px;justify-content:space-between;
  background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:13px 15px}
 .lead .hd{border:0;padding:0 0 9px;margin:0;gap:8px;border-bottom:1px solid var(--line)}
@@ -1218,10 +1222,12 @@ tbody tr:hover{background:#f8fafe}
 .balls.big .ball.sp{border-color:#c8352b;
  box-shadow:inset 0 -3px 7px rgba(140,90,0,.3),0 0 0 3px rgba(200,53,43,.22),
    0 2px 5px rgba(15,21,38,.28)}
-.hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
-.topgrid .hc{margin-top:0}
+.hc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.topgrid .hc{margin-top:0;grid-template-columns:repeat(2,minmax(0,1fr))}
 .hc1{grid-template-columns:minmax(0,1fr)}
-@media (max-width:900px){.topgrid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:1100px){.topgrid{grid-template-columns:minmax(0,1fr)}
+ .lead,.topgrid .hc{grid-column:auto}
+ .topgrid .hc{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .hc2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .hc4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .now .hd{margin-bottom:0;padding-bottom:12px}
