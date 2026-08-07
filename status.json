@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-08-07 20:46:11",
+ "built_at_taipei": "2026-08-07 21:01:44",
  "built_by": "雲端",
  "games": {
   "tw539": {
@@ -30,17 +30,17 @@
   },
   "tw649": {
    "name": "台灣大樂透",
-   "latest_date": "2026-08-04",
+   "latest_date": "2026-08-07",
    "latest_numbers": [
-    4,
-    9,
-    15,
-    30,
-    36,
-    49
+    2,
+    12,
+    19,
+    21,
+    25,
+    41
    ],
-   "special": 40,
-   "count": 1142
+   "special": 31,
+   "count": 1143
   },
   "hk6": {
    "name": "香港六合彩",
@@ -85,7 +85,7 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 1,
+   "added": 0,
    "latest": "2026-08-07",
    "source_latest": "2026-08-07"
   },
@@ -101,9 +101,9 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 0,
-   "latest": "2026-08-04",
-   "source_latest": "2026-08-04"
+   "added": 1,
+   "latest": "2026-08-07",
+   "source_latest": "2026-08-07"
   },
   "hk6": {
    "ok": true,
@@ -117,7 +117,7 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 1,
+   "added": 0,
    "latest": "2026-08-07",
    "source_latest": "2026-08-07"
   },
@@ -125,7 +125,7 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 1,
+   "added": 0,
    "latest": "2026-08-07",
    "source_latest": "2026-08-07"
   }
