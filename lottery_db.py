@@ -988,10 +988,13 @@ body{margin:0;background:var(--bg);color:var(--ink);
  padding:9px 0;border-bottom:1px solid var(--line)}
 .flashline .k{color:var(--mute);font-size:12.5px;min-width:74px}
 .pball{display:inline-flex;align-items:center;justify-content:center;
- width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;
- font-weight:700;font-size:14px}
-.pball.sp{background:var(--green)}
-.pball.cold{background:#5a6f9e}
+ width:34px;height:34px;border-radius:50%;font-weight:800;font-size:15px;color:#1a1206;
+ border:3px solid var(--gtint,#2f6fed);
+ background:radial-gradient(circle at 33% 27%,#fff6d0 0%,#ffd75e 48%,#e8a81f 100%);
+ box-shadow:inset 0 -2px 5px rgba(140,90,0,.3)}
+.pball.sp{border-color:#c8352b}
+.pball.cold{border:0;background:#5a6f9e;color:#fff;font-weight:700;font-size:14px;box-shadow:none}
+.panel .plus{color:var(--mute);font-weight:700;font-size:15px;margin:0 2px}
 .pill{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12.5px;
  font-weight:700;color:#fff}
 .pill.b{background:var(--red)}.pill.s{background:var(--blue)}
@@ -1686,8 +1689,8 @@ function flashHTML(G){
   let h=`<div class="flashline"><span class="k">日期</span><b>${r[1]}</b>${pid}</div>`;
   h+=`<div class="flashline"><span class="k">${G.kind==="digit"?"獎號":"開出號碼"}</span>`+
      r[2].map(v=>`<span class="pball">${pad(v)}</span>`).join("")+
-     (r[3]!==null&&r[3]!==undefined?`<span class="pball sp">${pad(r[3])}</span>`
-        +`<span style="color:var(--mute);font-size:12px">特別號</span>`:"")+`</div>`;
+     (r[3]!==null&&r[3]!==undefined?`<span class="plus">＋</span>`
+        +`<span class="pball sp">${pad(r[3])}</span>`:"")+`</div>`;
   h+=`<div class="flashline"><span class="k">總和</span><b>${r[4]}</b>`+
      (r[5]!==r[4]?`<span style="color:var(--mute);font-size:12.5px">（含特別號 ${r[5]}）</span>`:"")+`</div>`;
   // 每一種路子：結果 + 目前連幾個 + 近 12 期迷你路子條（跟 Discord 卡片一致）
@@ -2144,7 +2147,7 @@ function openPanel(kind){
    做法是把那段 HTML 包進 SVG 的 foreignObject 再畫到 canvas，
    全部離線完成，不需要任何外部程式庫，樣式也要一起塞進去才不會走版。*/
 function cardCSS(){
-  return `*{box-sizing:border-box;margin:0}
+  return (`*{box-sizing:border-box;margin:0}
   .w{width:660px;padding:20px 24px;background:#fff;
    font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
    font-size:15px;color:#1c1c1e;line-height:1.6}
@@ -2153,17 +2156,23 @@ function cardCSS(){
   .flashline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
    padding:9px 0;border-bottom:1px solid #e3e3e8}
   .flashline .k{color:#6f6f77;font-size:12.5px;min-width:74px}
-  .pball{display:inline-flex;align-items:center;justify-content:center;
-   width:34px;height:34px;border-radius:50%;background:#1c1c1e;color:#fff;
-   font-weight:700;font-size:14px}
-  .pball.sp{background:#14875a}.pball.cold{background:#5a6f9e}
+  .pball{display:inline-flex;align-items:center;justify-content:center;position:relative;
+   width:34px;height:34px;border-radius:50%;font-weight:800;font-size:15px;
+   color:#1a1206;border:3px solid GTINT;
+   background:radial-gradient(circle at 33% 27%,#fff6d0 0%,#ffd75e 48%,#e8a81f 100%);
+   box-shadow:inset 0 -2px 5px rgba(140,90,0,.3)}
+  .pball.sp{border-color:#c8352b}
+  .pball.cold{border:0;background:#5a6f9e;color:#fff;font-weight:700;font-size:14px;
+   box-shadow:none}
+  .plus{color:#6f6f77;font-weight:700;font-size:15px;margin:0 2px}
   .pill{display:inline-block;padding:2px 9px;border-radius:11px;
    font-size:12.5px;font-weight:700;color:#fff}
-  .pill.b{background:#c8352b}.pill.s{background:#1f4fd8}.pill.t{background:#14875a}`;
+  .pill.b{background:#c8352b}.pill.s{background:#1f4fd8}.pill.t{background:#14875a}`)
+    .replace(/GTINT/g, DATA[CUR].tint);
 }
 function cardBlob(cb){
   const G=DATA[CUR];
-  const html=`<div xmlns="http://www.w3.org/1999/xhtml" class="w">`+
+  const html=`<div xmlns="http://www.w3.org/1999/xhtml" class="w" style="--gtint:${G.tint}">`+
     `<div class="t">${G.name}　開獎速報</div>${flashHTML(G)}</div>`;
   const probe=document.createElement("div");
   probe.style.cssText="position:absolute;left:-9999px;top:0";

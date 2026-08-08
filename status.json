@@ -1,6 +1,6 @@
 {
- "built_at_taipei": "2026-08-08 20:46:03",
- "built_by": "雲端",
+ "built_at_taipei": "2026-08-08 20:51:07",
+ "built_by": "本機",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
@@ -84,31 +84,31 @@
   "tw539": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 1,
+   "fetched": 234,
+   "added": 2,
    "latest": "2026-08-08",
    "source_latest": "2026-08-08"
   },
   "ca_f5": {
    "ok": true,
    "error": null,
-   "fetched": 20,
-   "added": 0,
+   "fetched": 220,
+   "added": 2,
    "latest": "2026-08-08",
    "source_latest": "2026-08-08"
   },
   "tw649": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 0,
+   "fetched": 108,
+   "added": 1,
    "latest": "2026-08-07",
    "source_latest": "2026-08-07"
   },
   "hk6": {
    "ok": true,
    "error": null,
-   "fetched": 18,
+   "fetched": 99,
    "added": 0,
    "latest": "2026-08-06",
    "source_latest": "2026-08-06"
@@ -116,16 +116,16 @@
   "tw3d": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 1,
+   "fetched": 233,
+   "added": 2,
    "latest": "2026-08-08",
    "source_latest": "2026-08-08"
   },
   "tw4d": {
    "ok": true,
    "error": null,
-   "fetched": 46,
-   "added": 1,
+   "fetched": 233,
+   "added": 2,
    "latest": "2026-08-08",
    "source_latest": "2026-08-08"
   }

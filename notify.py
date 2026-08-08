@@ -156,12 +156,64 @@ def streak(hist, scope, t, mode):
 
 # ────────────────────── 畫圖 ──────────────────────
 
+_BALL = {}
+
+
+def _hex(c):
+    c = c.lstrip("#")
+    return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def ball_img(size, ring):
+    """畫一顆跟網頁一樣的彩球：黃色徑向漸層球身＋彩種色外圈＋左上反光。
+
+    PIL 沒有現成的徑向漸層，這裡用 Image.radial_gradient 當混色比例，
+    在「米黃 → 金黃 → 深金」三段之間內插，再套圓形遮罩。
+    """
+    from PIL import Image, ImageDraw, ImageFilter
+    key = (size, ring)
+    if key in _BALL:
+        return _BALL[key]
+    S = size * 4                                   # 先畫 4 倍再縮，邊緣才平滑
+    g = Image.radial_gradient("L").resize((S, S))  # 中心 0、邊緣 255
+    lo, mid, hi = _hex("#fff6d0"), _hex("#ffd75e"), _hex("#e8a81f")
+    px = g.load()
+    ball = Image.new("RGB", (S, S), hi)
+    bp = ball.load()
+    for y in range(S):
+        for x in range(S):
+            t = px[x, y] / 255
+            if t < 0.5:
+                k = t / 0.5
+                bp[x, y] = tuple(round(lo[i] + (mid[i] - lo[i]) * k) for i in range(3))
+            else:
+                k = (t - 0.5) / 0.5
+                bp[x, y] = tuple(round(mid[i] + (hi[i] - mid[i]) * k) for i in range(3))
+    ball = ball.convert("RGBA")
+    # 圓形遮罩
+    mask = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(mask).ellipse([0, 0, S - 1, S - 1], fill=255)
+    ball.putalpha(mask)
+    d = ImageDraw.Draw(ball)
+    w = max(4, S // 16)
+    d.ellipse([w // 2, w // 2, S - 1 - w // 2, S - 1 - w // 2], outline=ring, width=w)
+    # 左上反光
+    hl = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    ImageDraw.Draw(hl).ellipse([int(S * .22), int(S * .13),
+                                int(S * .50), int(S * .34)],
+                               fill=(255, 255, 255, 190))
+    hl = hl.filter(ImageFilter.GaussianBlur(S / 42))
+    ball = Image.alpha_composite(ball, Image.composite(hl, Image.new("RGBA", (S, S), (0, 0, 0, 0)), mask))
+    ball = ball.resize((size, size), Image.LANCZOS)
+    _BALL[key] = ball
+    return ball
+
 W = 900
 PAD = 26
 
 
 def card_height(g):
-    return 96 + 42 * len(g["charts"]) + (34 if g.get("gaps") else 0)
+    return 102 + 42 * len(g["charts"]) + (34 if g.get("gaps") else 0)
 
 
 def render(games, when):
@@ -197,23 +249,23 @@ def render(games, when):
         by = y + 48
         digit = g["cfg"]["kind"] == "digit"
         bx = x
-        for i, nv in enumerate(g["nums"]):
-            r = 17
-            d.ellipse([bx, by, bx + r * 2, by + r * 2],
-                      fill=(238, 241, 246), outline=(206, 212, 224))
-            d.text((bx + r, by + r), str(nv) if digit else f"{nv:02d}",
-                   font=F(16, True), fill=INK, anchor="mm")
-            bx += r * 2 + 8
+        tint = _hex(g["cfg"].get("tint", "#2f6fed"))
+        D = 40
+        for nv in g["nums"]:
+            img.paste(ball_img(D, tint), (bx, by), ball_img(D, tint))
+            d.text((bx + D // 2, by + D // 2 + 1), str(nv) if digit else f"{nv:02d}",
+                   font=F(18, True), fill=(26, 18, 6), anchor="mm")
+            bx += D + 9
         if g["special"] is not None:
-            d.text((bx + 2, by + 17), "+", font=F(18), fill=MUTE, anchor="lm")
-            bx += 20
-            r = 17
-            d.ellipse([bx, by, bx + r * 2, by + r * 2],
-                      fill=(253, 236, 200), outline=(222, 186, 106))
-            d.text((bx + r, by + r), f"{g['special']:02d}", font=F(16, True), fill=(140, 96, 12), anchor="mm")
+            d.text((bx + 2, by + D // 2), "＋", font=F(19), fill=MUTE, anchor="lm")
+            bx += 27
+            sp = _hex("#c8352b")
+            img.paste(ball_img(D, sp), (bx, by), ball_img(D, sp))
+            d.text((bx + D // 2, by + D // 2 + 1), f"{g['special']:02d}",
+                   font=F(18, True), fill=(26, 18, 6), anchor="mm")
 
         # 每一種路子（大小 / 單雙，含 6 球 7 球）
-        ry = y + 90
+        ry = y + 96
         for title, scope, mode in g["charts"]:
             t = g["th"][scope]
             v = g["sum_all"] if scope == "all" else g["sum_main"]
@@ -237,8 +289,8 @@ def render(games, when):
                 recent.append(classify(vv, t, mode))
             step, box = 21, 18
             sx = W - PAD - 20 - step * len(recent) + (step - box)
-            if ry == y + 90:        # 只在第一列標一次方向，放在球號那一列的右側空白處
-                d.text((sx, y + 72), "近 12 期　右＝最新", font=F(11), fill=MUTE)
+            if ry == y + 96:        # 只在第一列標一次方向，放在球號那一列的右側空白處
+                d.text((sx, y + 76), "近 12 期　右＝最新", font=F(11), fill=MUTE)
             for i, (lab2, col2) in enumerate(recent):
                 x0 = sx + i * step
                 d.rounded_rectangle([x0, ry + 4, x0 + box, ry + 22], 4, fill=col2)
