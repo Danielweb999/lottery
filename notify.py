@@ -170,7 +170,7 @@ def ball_img(size, ring):
     PIL 沒有現成的徑向漸層，這裡用 Image.radial_gradient 當混色比例，
     在「米黃 → 金黃 → 深金」三段之間內插，再套圓形遮罩。
     """
-    from PIL import Image, ImageDraw, ImageFilter
+    from PIL import Image, ImageDraw
     key = (size, ring)
     if key in _BALL:
         return _BALL[key]
@@ -197,13 +197,8 @@ def ball_img(size, ring):
     d = ImageDraw.Draw(ball)
     w = max(4, S // 16)
     d.ellipse([w // 2, w // 2, S - 1 - w // 2, S - 1 - w // 2], outline=ring, width=w)
-    # 左上反光
-    hl = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    ImageDraw.Draw(hl).ellipse([int(S * .22), int(S * .13),
-                                int(S * .50), int(S * .34)],
-                               fill=(255, 255, 255, 190))
-    hl = hl.filter(ImageFilter.GaussianBlur(S / 42))
-    ball = Image.alpha_composite(ball, Image.composite(hl, Image.new("RGBA", (S, S), (0, 0, 0, 0)), mask))
+    # 原本這裡有一顆左上反光的白點，縮到 40px 之後看起來像多一個小圈圈，
+    # 反而干擾數字判讀，所以拿掉；立體感由徑向漸層本身呈現就夠了。
     ball = ball.resize((size, size), Image.LANCZOS)
     _BALL[key] = ball
     return ball
