@@ -978,6 +978,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;
  padding:18px;overflow:auto}
 .mask.on{display:block}
+.panel.wide{max-width:860px}
 .panel{max-width:680px;margin:0 auto;background:#fff;border-radius:12px;
  box-shadow:0 12px 40px rgba(0,0,0,.3)}
 .ptop{display:flex;align-items:center;gap:8px;padding:12px 16px;
@@ -1321,7 +1322,7 @@ thead th{background:#f7f9fc;color:#475569;font-weight:600}
 
 <div class="tabs" id="tabs"></div>
 
-<div id="mask" class="mask"><div class="panel">
+<div id="mask" class="mask"><div class="panel" id="panel">
   <div class="ptop"><b id="ptitle"></b>
     <span style="flex:1"></span>
     <button class="btn" id="pcopy" style="display:none">複製圖片</button>
@@ -1480,6 +1481,7 @@ function render(){
           last[3]!==null?`<span class="plus">＋</span><span class="ball sp">${ballTxt(G,last[3])}</span>`:""}</div>
         <div class="lfoot"><span class="dt">總和 ${last[4]}${last[5]!==last[4]?` / ${last[5]}`:""}</span>
           <span style="flex:1"></span>
+          <button class="btn" id="calcbtn">碰數計算</button>
           <button class="btn" id="flash">分享速報</button></div>
       </div>
       <div class="hc hc${G.charts.length>2?2:1}">`;
@@ -1600,6 +1602,7 @@ function render(){
   H+=`</tbody></table></div></div></div>`;
   $("out").innerHTML=H;
   const fb=$("flash"); if(fb) fb.onclick=()=>openPanel("flash");
+  const cb=$("calcbtn"); if(cb) cb.onclick=()=>openPanel("calc");
   paintMainGap();
   bindRoadBar();
   bindQuery();
@@ -1747,8 +1750,7 @@ function gapHTML(G,view,sortBy,head){
    全部都是從已有的開獎資料直接算出來的，不需要另外抓任何東西。*/
 const ANZ=[["trend","走勢分佈圖"],["stat","出現次數"],["tail","尾數／頭數"],
            ["zone","三分區"],["ratio","球數單雙比"],["sum","和值分布"],
-           ["run","連號"],["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"],
-           ["calc","碰數計算器"]];
+           ["run","連號"],["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"]];
 // ANZK 為 null 代表還沒點任何一項，內容區收起來不顯示也不計算
 let ANZK=null, DRAGN=null, PAIRN=0, REPN=0;
 let RB={n:"120",yr:"",dens:"22"};   // 版路控制項的狀態   // DRAGN 是三個號碼的陣列
@@ -1769,8 +1771,7 @@ function paintAnz(){
   box.hidden=false;
   box.innerHTML=({trend:anzTrend,stat:anzStat,tail:anzTail,zone:anzZone,
                   ratio:anzRatio,sum:anzSum,run:anzRun,
-                  rep:anzRepeat,pair:anzPair,drag:anzDrag,calc:anzCalc}[ANZK])(G);
-  if(ANZK==="calc") bindCalc(G);
+                  rep:anzRepeat,pair:anzPair,drag:anzDrag}[ANZK])(G);
   const bind=(id,set)=>{const el=$(id); if(el) el.onchange=()=>{set(+el.value);paintAnz();};};
   [0,1,2].forEach(i=>bind("dragsel"+i,v=>{DRAGN=DRAGN.slice();DRAGN[i]=v;}));
   bind("pairsel",v=>PAIRN=v); bind("repsel",v=>REPN=v);
@@ -2216,10 +2217,11 @@ function anzCalc(G){
     `注數少是用「膽碼一定要對」換來的。`);
 }
 
-function bindCalc(G){
-  const box=$("anzbox"); if(!box) return;
-  box.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{CALC.mode=b.dataset.c;paintAnz();});
-  box.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{CALC.k=+b.dataset.k;paintAnz();});
+function bindCalc(G,box){
+  box=box||$("anzbox"); if(!box) return;
+  const redraw=()=> PMODE==="calc" ? paintPanel() : paintAnz();
+  box.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{CALC.mode=b.dataset.c;redraw();});
+  box.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{CALC.k=+b.dataset.k;redraw();});
   box.querySelectorAll("[data-fill]").forEach(b=>b.onclick=()=>{
     const g=gaps(G), win=Math.min(60,G.rows.length), c={};
     anzNums(G).forEach(n=>c[n]=0);
@@ -2230,21 +2232,21 @@ function bindCalc(G){
     else if(b.dataset.fill==="cold") pick=by.sort((a,b2)=>a[1]-b2[1]).slice(0,6).map(x=>x[0]);
     else pick=g.sort((a,b2)=>b2.gap-a.gap).slice(0,6).map(x=>x.v);
     CALC.nums=pick.sort((a,b2)=>a-b2).map(pad2).join(" ");
-    paintAnz();
+    redraw();
   });
   box.querySelectorAll("[data-zhu]").forEach(b=>b.onclick=()=>{
     if(b.dataset.zhu==="add"&&CALC.cols.length<10) CALC.cols=CALC.cols.concat([2]);
     if(b.dataset.zhu==="del"&&CALC.cols.length>2) CALC.cols=CALC.cols.slice(0,-1);
-    paintAnz();
+    redraw();
   });
   const keep=(id,key)=>{
     const el=$(id); if(!el) return;
-    el.onchange=()=>{CALC[key]=el.value;paintAnz();};
-    el.onkeydown=e=>{ if(e.key==="Enter"){CALC[key]=el.value;paintAnz();} };
+    el.onchange=()=>{CALC[key]=el.value;redraw();};
+    el.onkeydown=e=>{ if(e.key==="Enter"){CALC[key]=el.value;redraw();} };
   };
   keep("cnums","nums"); keep("cprice","price"); keep("cdan","dan"); keep("ctuo","tuo");
   box.querySelectorAll(".czhu").forEach(el=>{
-    el.onchange=()=>{CALC.cols=CALC.cols.map((v,i)=>i==el.dataset.i?el.value:v);paintAnz();};
+    el.onchange=()=>{CALC.cols=CALC.cols.map((v,i)=>i==el.dataset.i?el.value:v);redraw();};
   });
 }
 
@@ -2319,9 +2321,11 @@ let PV="bar", PS="gap", PMODE="";
 function openPanel(kind){
   const G=DATA[CUR];
   PMODE=kind;
-  $("ptitle").textContent=G.name+(kind==="flash"?"　開獎速報":"　未開累計");
+  $("ptitle").textContent=G.name+
+    (kind==="flash"?"　開獎速報":kind==="calc"?"　碰數計算器":"　未開累計");
   $("psort").style.display=kind==="gap"?"":"none";
   $("pcopy").style.display=$("pdl").style.display=kind==="flash"?"":"none";
+  $("panel").classList.toggle("wide",kind==="calc");
   paintPanel();
   $("mask").classList.add("on");
 }
@@ -2404,7 +2408,9 @@ $("pcopy").onclick=()=>cardBlob(async (b,G)=>{
 });
 function paintPanel(){
   const G=DATA[CUR];
-  $("pbody").innerHTML = PMODE==="flash" ? flashHTML(G) : gapHTML(G,PV,PS,gapHead(G));
+  $("pbody").innerHTML = PMODE==="flash" ? flashHTML(G)
+    : PMODE==="calc" ? anzCalc(G) : gapHTML(G,PV,PS,gapHead(G));
+  if(PMODE==="calc"){ bindCalc(G,$("pbody")); return; }
   $("psort").textContent="排序："+(PS==="gap"?"最久沒開":"號碼順序");
   if(PMODE==="gap"&&PV==="table"){
     document.querySelectorAll("table.gt th[data-s]").forEach(t=>{
