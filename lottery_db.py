@@ -982,7 +982,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .panel{max-width:680px;margin:0 auto;background:#fff;border-radius:12px;
  box-shadow:0 12px 40px rgba(0,0,0,.3)}
 .ptop{display:flex;align-items:center;gap:8px;padding:12px 16px;
- border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;
+ border-bottom:1px solid var(--line);background:#fff;
  border-radius:12px 12px 0 0;flex-wrap:wrap}
 #pbody{padding:16px}
 .flashline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -996,6 +996,11 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pball.sp{border-color:#c8352b}
 .pball.cold{border:0;background:#5a6f9e;color:#fff;font-weight:700;font-size:14px;box-shadow:none}
 .panel .plus{color:var(--mute);font-weight:700;font-size:15px;margin:0 2px}
+/* 最久沒開那一列：明確指定橫向排列與換行，並吃掉剩餘寬度 */
+.coldline{border:none;align-items:flex-start}
+.coldwrap{display:flex;flex-wrap:wrap;gap:6px 10px;flex:1 1 260px;min-width:0}
+.ci{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;
+ font-size:12px;color:var(--mute)}
 .pill{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12.5px;
  font-weight:700;color:#fff}
 .pill.b{background:var(--red)}.pill.s{background:var(--blue)}
@@ -1718,11 +1723,10 @@ function flashHTML(G){
        `<span style="flex:1"></span><span style="line-height:1">${mini}</span></div>`;
   });
   const cold=gaps(G).sort((a,b)=>b.gap-a.gap).slice(0,8);
-  h+=`<div class="flashline" style="border:none;align-items:flex-start">`+
-     `<span class="k">最久沒開</span><span>`+
-     cold.map(x=>`<span class="pball cold" style="margin:2px 3px 2px 0">`+
-       `${pad(x.v)}</span><span style="color:var(--mute);font-size:12px;margin-right:8px">`+
-       `${x.gap}期</span>`).join("")+`</span></div>`;
+  h+=`<div class="flashline coldline"><span class="k">最久沒開</span>`+
+     `<div class="coldwrap">`+
+     cold.map(x=>`<span class="ci"><span class="pball cold">${pad(x.v)}</span>`+
+       `${x.gap}期</span>`).join("")+`</div></div>`;
   return h;
 }
 
@@ -2352,6 +2356,10 @@ function cardCSS(){
   .pball.cold{border:0;background:#5a6f9e;color:#fff;font-weight:700;font-size:14px;
    box-shadow:none}
   .plus{color:#6f6f77;font-weight:700;font-size:15px;margin:0 2px}
+  .coldline{border:none;align-items:flex-start}
+  .coldwrap{display:flex;flex-wrap:wrap;gap:6px 10px;flex:1 1 260px;min-width:0}
+  .ci{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;
+   font-size:12px;color:#6f6f77}
   .pill{display:inline-block;padding:2px 9px;border-radius:11px;
    font-size:12.5px;font-weight:700;color:#fff}
   .pill.b{background:#c8352b}.pill.s{background:#1f4fd8}.pill.t{background:#14875a}`)
