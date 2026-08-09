@@ -2107,7 +2107,9 @@ function parseNums(txt,pool){
 function money(x){return "NT$ "+Math.round(x).toLocaleString();}
 
 function anzCalc(G){
-  const P=G.pool, star=[2,3,4,5,6].filter(k=>k<=Math.min(6,P));
+  // 實際玩法只到四星，沒有五星六星可以下，所以上限就到 4
+  const P=G.pool, star=[2,3,4];
+  if(star.indexOf(CALC.k)<0) CALC.k=2;
   const tabs=[["lian","連碰"],["zhu","立柱"],["dan","膽拖"]];
   let h=`<div class="anz" style="margin-bottom:10px">`+tabs.map(([k,t])=>
     `<button class="btn sm${CALC.mode===k?" on":""}" data-c="${k}">${t}</button>`).join("")+
