@@ -1301,6 +1301,9 @@ thead th{background:#f7f9fc;color:#475569;font-weight:600}
 .legend{background:#fff;border:1px solid var(--line);border-radius:12px}
 .ball{background:#1e293b}
 .kv .it{background:#f7f9fc;border:1px solid var(--line)}
+.crow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px}
+.crow .ck{font-size:12.5px;color:var(--mute)}
+.cballs{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
 .gaprow .bf{background:linear-gradient(90deg,var(--accent),var(--accent2))}
 @media (max-width:760px){
   header{margin:0 -12px;padding:14px 14px 12px}
@@ -1744,7 +1747,8 @@ function gapHTML(G,view,sortBy,head){
    全部都是從已有的開獎資料直接算出來的，不需要另外抓任何東西。*/
 const ANZ=[["trend","走勢分佈圖"],["stat","出現次數"],["tail","尾數／頭數"],
            ["zone","三分區"],["ratio","球數單雙比"],["sum","和值分布"],
-           ["run","連號"],["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"]];
+           ["run","連號"],["rep","連莊重複號"],["pair","哥倆好"],["drag","拖牌"],
+           ["calc","碰數計算器"]];
 // ANZK 為 null 代表還沒點任何一項，內容區收起來不顯示也不計算
 let ANZK=null, DRAGN=null, PAIRN=0, REPN=0;
 let RB={n:"120",yr:"",dens:"22"};   // 版路控制項的狀態   // DRAGN 是三個號碼的陣列
@@ -1765,7 +1769,8 @@ function paintAnz(){
   box.hidden=false;
   box.innerHTML=({trend:anzTrend,stat:anzStat,tail:anzTail,zone:anzZone,
                   ratio:anzRatio,sum:anzSum,run:anzRun,
-                  rep:anzRepeat,pair:anzPair,drag:anzDrag}[ANZK])(G);
+                  rep:anzRepeat,pair:anzPair,drag:anzDrag,calc:anzCalc}[ANZK])(G);
+  if(ANZK==="calc") bindCalc(G);
   const bind=(id,set)=>{const el=$(id); if(el) el.onchange=()=>{set(+el.value);paintAnz();};};
   [0,1,2].forEach(i=>bind("dragsel"+i,v=>{DRAGN=DRAGN.slice();DRAGN[i]=v;}));
   bind("pairsel",v=>PAIRN=v); bind("repsel",v=>REPN=v);
@@ -2063,6 +2068,182 @@ function anzDrag(G){
   return h+anzNote(`${pick.map(pad2).join("、")} 一起開出過 ${base} 次，`+
     `上面是這 ${base} 次的「下一期」統計。平均每個號碼的期望值約 ${exp.toFixed(1)}%，`+
     `明顯高於期望值的標紅底。`);
+}
+
+/* ── 碰數計算器 ────────────────────────────────────────
+   三種算法，全部是純組合數學，跟開獎結果無關：
+
+   連碰（複式）  從 n 個選號中任取 k 個的所有組合 → C(n,k) 注
+   立柱（柱碰）  把號碼分成幾柱，每柱最多取一個。k 星的碰數等於
+                 「各柱數量的基本對稱多項式 e_k」。想避免某兩個號碼
+                 被配在同一注時，就把它們放進同一柱。
+   膽拖          d 個膽碼每注必含，其餘從 t 個拖碼取 (k−d) → C(t,k−d) 注
+
+   另外多做一項別的站沒有的：拿你選的號碼回頭比對我們的完整歷史，
+   看過去每一期實際命中幾個、有多少期達到你要的星數。*/
+let CALC={mode:"lian",nums:"",k:2,price:50,cols:[3,3,3],dan:"",tuo:5};
+
+function comb(n,k){
+  if(k<0||k>n) return 0;
+  k=Math.min(k,n-k);
+  let r=1;
+  for(let i=1;i<=k;i++) r=r*(n-k+i)/i;
+  return Math.round(r);
+}
+/* 基本對稱多項式：從各柱中挑 k 柱、每柱取一個號碼的總組合數 */
+function esym(sizes,k){
+  const e=new Array(k+1).fill(0); e[0]=1;
+  sizes.forEach(s=>{ for(let j=Math.min(k,e.length-1);j>=1;j--) e[j]+=e[j-1]*s; });
+  return e[k]||0;
+}
+function parseNums(txt,pool){
+  const seen=new Set(),out=[];
+  (String(txt).match(/\d{1,2}/g)||[]).forEach(x=>{
+    const v=+x;
+    if(v>=1&&v<=pool&&!seen.has(v)){seen.add(v);out.push(v);}
+  });
+  return out.sort((a,b)=>a-b);
+}
+function money(x){return "NT$ "+Math.round(x).toLocaleString();}
+
+function anzCalc(G){
+  const P=G.pool, star=[2,3,4,5,6].filter(k=>k<=Math.min(6,P));
+  const tabs=[["lian","連碰"],["zhu","立柱"],["dan","膽拖"]];
+  let h=`<div class="anz" style="margin-bottom:10px">`+tabs.map(([k,t])=>
+    `<button class="btn sm${CALC.mode===k?" on":""}" data-c="${k}">${t}</button>`).join("")+
+    `</div>`;
+
+  if(CALC.mode==="lian"){
+    const nums=parseNums(CALC.nums,P);
+    h+=`<div class="crow"><span class="ck">選號</span>
+      <input id="cnums" value="${CALC.nums}" placeholder="例如 03 09 16 24 35（1-${P}）"
+        style="flex:1;min-width:230px;font:inherit;font-size:14px;padding:5px 10px;
+        border:1px solid #ccccd4;border-radius:6px">
+      <button class="btn sm" data-fill="hot">帶入熱號</button>
+      <button class="btn sm" data-fill="cold">帶入冷號</button>
+      <button class="btn sm" data-fill="due">帶入最久未開</button></div>`;
+    h+=`<div class="crow"><span class="ck">星數</span>`+
+      star.map(k=>`<button class="btn sm${CALC.k===k?" on":""}" data-k="${k}">${k} 星</button>`).join("")+
+      `<span class="ck" style="margin-left:10px">每注</span>
+       <input id="cprice" value="${CALC.price}" style="width:80px;font:inherit;font-size:14px;
+        padding:5px 9px;border:1px solid #ccccd4;border-radius:6px"> 元</div>`;
+    if(nums.length<CALC.k) return h+anzNote(`請至少輸入 ${CALC.k} 個號碼（目前 ${nums.length} 個）。`);
+    const bets=comb(nums.length,CALC.k);
+    h+=`<div class="kv" style="margin:10px 0">
+      <div class="it">選號個數<b>${nums.length}</b></div>
+      <div class="it">注數<b>${bets.toLocaleString()}</b><span style="color:var(--mute)">C(${nums.length},${CALC.k})</span></div>
+      <div class="it">總金額<b style="font-size:15px">${money(bets*(+CALC.price||0))}</b></div></div>`;
+    h+=`<div class="cballs">`+nums.map(n=>`<span class="ball">${pad2(n)}</span>`).join("")+`</div>`;
+
+    // 中 m 個時會中幾注
+    h+=`<div style="font-weight:700;font-size:13px;margin:14px 0 6px">開出的號碼命中你幾個 → 中幾注</div>
+      <table class="gt"><tr><th>命中個數</th><th>中獎注數</th></tr>`;
+    for(let m=CALC.k;m<=Math.min(nums.length,G.n_main||5);m++)
+      h+=`<tr><td>${m} 個</td><td><b>${comb(m,CALC.k).toLocaleString()}</b> 注</td></tr>`;
+    h+=`</table>`;
+
+    // 歷史回測
+    const dist={};
+    G.rows.forEach(r=>{
+      const m=r[2].filter(x=>nums.includes(x)).length;
+      dist[m]=(dist[m]||0)+1;
+    });
+    const N=G.rows.length;
+    let hit=0;
+    Object.entries(dist).forEach(([m,c])=>{ if(+m>=CALC.k) hit+=c; });
+    h+=`<div style="font-weight:700;font-size:13px;margin:16px 0 6px">這組號碼的歷史表現
+      <span style="font-weight:400;font-size:11.5px;color:var(--mute)">全部 ${N.toLocaleString()} 期</span></div>
+      <div class="kv">`+Object.keys(dist).sort((a,b)=>a-b).map(m=>
+      `<div class="it${+m>=CALC.k?" hot":""}">命中 ${m} 個<b>${dist[m]}</b>`+
+      `<span style="color:var(--mute)">${(dist[m]/N*100).toFixed(1)}%</span></div>`).join("")+`</div>`;
+    return h+anzNote(`歷史上有 ${hit.toLocaleString()} 期（${(hit/N*100).toFixed(2)}%）`+
+      `命中達到 ${CALC.k} 個以上。注數與金額純為組合數學計算，實際玩法與單注金額請以官方公告為準。`);
+  }
+
+  if(CALC.mode==="zhu"){
+    h+=`<div class="crow"><span class="ck">每柱號碼數</span>`+
+      CALC.cols.map((v,i)=>`<input class="czhu" data-i="${i}" value="${v}"
+        style="width:56px;font:inherit;font-size:14px;padding:5px 8px;text-align:center;
+        border:1px solid #ccccd4;border-radius:6px">`).join("")+
+      `<button class="btn sm" data-zhu="add">＋柱</button>
+       <button class="btn sm" data-zhu="del">－柱</button>
+       <span class="ck" style="margin-left:10px">每注</span>
+       <input id="cprice" value="${CALC.price}" style="width:80px;font:inherit;font-size:14px;
+        padding:5px 9px;border:1px solid #ccccd4;border-radius:6px"> 元</div>`;
+    const sz=CALC.cols.map(x=>Math.max(0,+x||0)).filter(x=>x>0);
+    if(sz.length<2) return h+anzNote("至少要有兩柱、每柱至少一個號碼。");
+    const total=sz.reduce((a,b)=>a+b,0);
+    h+=`<table class="gt" style="margin-top:10px"><tr><th>星數</th><th>碰數（注）</th><th>金額</th></tr>`;
+    let sum=0;
+    star.forEach(k=>{
+      if(k>sz.length) return;
+      const c=esym(sz,k); sum+=c*(+CALC.price||0);
+      h+=`<tr><td>${k} 星</td><td><b>${c.toLocaleString()}</b></td>`+
+         `<td>${money(c*(+CALC.price||0))}</td></tr>`;
+    });
+    h+=`</table>`;
+    return h+anzNote(`共 ${sz.length} 柱、${total} 個號碼（${sz.join(" × ")}）。`+
+      `立柱的規則是每柱最多取一個號碼，所以放在同一柱的號碼永遠不會被配在同一注 —— `+
+      `這就是它能比全部連碰少很多注的原因。`);
+  }
+
+  // 膽拖
+  const dan=parseNums(CALC.dan,P), t=Math.max(0,+CALC.tuo||0);
+  h+=`<div class="crow"><span class="ck">膽碼</span>
+    <input id="cdan" value="${CALC.dan}" placeholder="每注都必含的號碼，例如 07 21"
+      style="flex:1;min-width:200px;font:inherit;font-size:14px;padding:5px 10px;
+      border:1px solid #ccccd4;border-radius:6px">
+    <span class="ck">拖碼個數</span>
+    <input id="ctuo" value="${CALC.tuo}" style="width:70px;font:inherit;font-size:14px;
+      padding:5px 9px;text-align:center;border:1px solid #ccccd4;border-radius:6px"></div>`;
+  h+=`<div class="crow"><span class="ck">星數</span>`+
+    star.map(k=>`<button class="btn sm${CALC.k===k?" on":""}" data-k="${k}">${k} 星</button>`).join("")+
+    `<span class="ck" style="margin-left:10px">每注</span>
+     <input id="cprice" value="${CALC.price}" style="width:80px;font:inherit;font-size:14px;
+      padding:5px 9px;border:1px solid #ccccd4;border-radius:6px"> 元</div>`;
+  if(!dan.length) return h+anzNote("請至少輸入一個膽碼。");
+  if(dan.length>=CALC.k) return h+anzNote(`膽碼有 ${dan.length} 個，已經達到 ${CALC.k} 星，不需要拖碼。`);
+  const need=CALC.k-dan.length, bets=comb(t,need);
+  h+=`<div class="kv" style="margin:10px 0">
+    <div class="it">膽碼<b>${dan.length}</b></div>
+    <div class="it">再取<b>${need}</b><span style="color:var(--mute)">從 ${t} 個拖碼</span></div>
+    <div class="it">注數<b>${bets.toLocaleString()}</b><span style="color:var(--mute)">C(${t},${need})</span></div>
+    <div class="it">總金額<b style="font-size:15px">${money(bets*(+CALC.price||0))}</b></div></div>`;
+  h+=`<div class="cballs">`+dan.map(n=>`<span class="ball">${pad2(n)}</span>`).join("")+`</div>`;
+  return h+anzNote(`膽碼每一注都會包含。若膽碼沒有全中，這組就整組不中 —— `+
+    `注數少是用「膽碼一定要對」換來的。`);
+}
+
+function bindCalc(G){
+  const box=$("anzbox"); if(!box) return;
+  box.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{CALC.mode=b.dataset.c;paintAnz();});
+  box.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{CALC.k=+b.dataset.k;paintAnz();});
+  box.querySelectorAll("[data-fill]").forEach(b=>b.onclick=()=>{
+    const g=gaps(G), win=Math.min(60,G.rows.length), c={};
+    anzNums(G).forEach(n=>c[n]=0);
+    G.rows.slice(-win).forEach(r=>r[2].forEach(n=>{c[n]=(c[n]||0)+1;}));
+    const by=Object.entries(c).map(([n,v])=>[+n,v]);
+    let pick;
+    if(b.dataset.fill==="hot") pick=by.sort((a,b2)=>b2[1]-a[1]).slice(0,6).map(x=>x[0]);
+    else if(b.dataset.fill==="cold") pick=by.sort((a,b2)=>a[1]-b2[1]).slice(0,6).map(x=>x[0]);
+    else pick=g.sort((a,b2)=>b2.gap-a.gap).slice(0,6).map(x=>x.v);
+    CALC.nums=pick.sort((a,b2)=>a-b2).map(pad2).join(" ");
+    paintAnz();
+  });
+  box.querySelectorAll("[data-zhu]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.zhu==="add"&&CALC.cols.length<10) CALC.cols=CALC.cols.concat([2]);
+    if(b.dataset.zhu==="del"&&CALC.cols.length>2) CALC.cols=CALC.cols.slice(0,-1);
+    paintAnz();
+  });
+  const keep=(id,key)=>{
+    const el=$(id); if(!el) return;
+    el.onchange=()=>{CALC[key]=el.value;paintAnz();};
+    el.onkeydown=e=>{ if(e.key==="Enter"){CALC[key]=el.value;paintAnz();} };
+  };
+  keep("cnums","nums"); keep("cprice","price"); keep("cdan","dan"); keep("ctuo","tuo");
+  box.querySelectorAll(".czhu").forEach(el=>{
+    el.onchange=()=>{CALC.cols=CALC.cols.map((v,i)=>i==el.dataset.i?el.value:v);paintAnz();};
+  });
 }
 
 /* 號碼查詢：三星彩／四星彩專用
