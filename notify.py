@@ -214,7 +214,7 @@ def card_height(g):
 def render(games, when):
     from PIL import Image, ImageDraw
     heights = [card_height(g) for g in games]
-    H = 104 + sum(h + 12 for h in heights) + 46
+    H = 104 + sum(h + 12 for h in heights) + 14   # 底部只留一點留白，不再放來源說明
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
 
@@ -313,8 +313,6 @@ def render(games, when):
 
         y += h + 12
 
-    d.text((PAD, H - 32), "資料來源：台灣彩券 / 樂透王 / 加州官方 / pilio",
-           font=F(13), fill=MUTE)
     return img
 
 
