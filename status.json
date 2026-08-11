@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-08-11 13:31:11",
+ "built_at_taipei": "2026-08-11 13:46:15",
  "built_by": "雲端",
  "games": {
   "tw539": {
@@ -90,12 +90,11 @@
    "source_latest": "2026-08-10"
   },
   "ca_f5": {
-   "ok": true,
-   "error": null,
-   "fetched": 20,
+   "ok": false,
+   "error": "三個來源都失敗 — 樂透王：連得上但解析不到資料；官方：HTTP Error 403: Forbidden；彩世界：無資料",
+   "fetched": 0,
    "added": 0,
-   "latest": "2026-08-11",
-   "source_latest": "2026-08-11"
+   "latest": "2026-08-11"
   },
   "tw649": {
    "ok": true,
