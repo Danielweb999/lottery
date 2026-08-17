@@ -1,19 +1,19 @@
 {
- "built_at_taipei": "2026-08-17 20:31:25",
+ "built_at_taipei": "2026-08-17 20:46:13",
  "built_by": "雲端",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
-   "latest_date": "2026-08-15",
+   "latest_date": "2026-08-17",
    "latest_numbers": [
-    12,
-    14,
-    21,
-    35,
-    37
+    19,
+    22,
+    27,
+    28,
+    38
    ],
    "special": null,
-   "count": 3152
+   "count": 3153
   },
   "ca_f5": {
    "name": "加州天天樂",
@@ -58,26 +58,26 @@
   },
   "tw3d": {
    "name": "台灣三星彩",
-   "latest_date": "2026-08-15",
+   "latest_date": "2026-08-17",
    "latest_numbers": [
-    1,
-    9,
-    5
+    3,
+    5,
+    4
    ],
    "special": null,
-   "count": 3152
+   "count": 3153
   },
   "tw4d": {
    "name": "台灣四星彩",
-   "latest_date": "2026-08-15",
+   "latest_date": "2026-08-17",
    "latest_numbers": [
-    2,
-    3,
-    9,
-    5
+    6,
+    7,
+    5,
+    3
    ],
    "special": null,
-   "count": 3152
+   "count": 3153
   }
  },
  "fetch": {
@@ -85,9 +85,9 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 0,
-   "latest": "2026-08-15",
-   "source_latest": "2026-08-15"
+   "added": 1,
+   "latest": "2026-08-17",
+   "source_latest": "2026-08-17"
   },
   "ca_f5": {
    "ok": true,
@@ -117,17 +117,17 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 0,
-   "latest": "2026-08-15",
-   "source_latest": "2026-08-15"
+   "added": 1,
+   "latest": "2026-08-17",
+   "source_latest": "2026-08-17"
   },
   "tw4d": {
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 0,
-   "latest": "2026-08-15",
-   "source_latest": "2026-08-15"
+   "added": 1,
+   "latest": "2026-08-17",
+   "source_latest": "2026-08-17"
   }
  }
 }
