@@ -1,19 +1,19 @@
 {
- "built_at_taipei": "2026-08-25 20:31:20",
+ "built_at_taipei": "2026-08-25 20:46:58",
  "built_by": "雲端",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
-   "latest_date": "2026-08-24",
+   "latest_date": "2026-08-25",
    "latest_numbers": [
-    9,
-    10,
-    19,
+    8,
+    21,
     23,
-    26
+    30,
+    35
    ],
    "special": null,
-   "count": 3159
+   "count": 3160
   },
   "ca_f5": {
    "name": "加州天天樂",
@@ -58,26 +58,26 @@
   },
   "tw3d": {
    "name": "台灣三星彩",
-   "latest_date": "2026-08-24",
+   "latest_date": "2026-08-25",
    "latest_numbers": [
-    5,
+    8,
     7,
     2
    ],
    "special": null,
-   "count": 3159
+   "count": 3160
   },
   "tw4d": {
    "name": "台灣四星彩",
-   "latest_date": "2026-08-24",
+   "latest_date": "2026-08-25",
    "latest_numbers": [
-    3,
+    7,
     0,
-    1,
+    6,
     7
    ],
    "special": null,
-   "count": 3159
+   "count": 3160
   }
  },
  "fetch": {
@@ -85,17 +85,16 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 0,
-   "latest": "2026-08-24",
-   "source_latest": "2026-08-24"
-  },
-  "ca_f5": {
-   "ok": true,
-   "error": null,
-   "fetched": 20,
-   "added": 0,
+   "added": 1,
    "latest": "2026-08-25",
    "source_latest": "2026-08-25"
+  },
+  "ca_f5": {
+   "ok": false,
+   "error": "三個來源都失敗 — 樂透王：連得上但解析不到資料；官方：HTTP Error 403: Forbidden；彩世界：無資料",
+   "fetched": 0,
+   "added": 0,
+   "latest": "2026-08-25"
   },
   "tw649": {
    "ok": true,
@@ -117,17 +116,17 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 0,
-   "latest": "2026-08-24",
-   "source_latest": "2026-08-24"
+   "added": 1,
+   "latest": "2026-08-25",
+   "source_latest": "2026-08-25"
   },
   "tw4d": {
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 0,
-   "latest": "2026-08-24",
-   "source_latest": "2026-08-24"
+   "added": 1,
+   "latest": "2026-08-25",
+   "source_latest": "2026-08-25"
   }
  }
 }
