@@ -3,7 +3,7 @@
 """
 樂透路子圖資料庫
 ================
-抓取六種彩券近十年開獎紀錄，建立本機 SQLite 資料庫，並產生離線可看的路子圖網頁。
+抓取七種彩券近十年開獎紀錄，建立本機 SQLite 資料庫，並產生離線可看的路子圖網頁。
 
 彩種與規則
 ----------
@@ -11,6 +11,8 @@
   加州 Fantasy 5 1-39 選 5      總和 15-185   同上
   台灣大樂透     1-49 選 6+1    6球 21-279    150 和 / 149↓小 / 151↑大
                                 7球 28-322    175 和 / 174↓小 / 176↑大
+  台灣威力彩     第一區 1-38 選 6   21-213    117 和 / 116↓小 / 118↑大
+                 第二區 1-8 選 1   ← 不同號池，不進總和、不算大小單雙
   香港六合彩     1-49 選 6+1    同大樂透
   台灣三星彩     3 位 0-9       總和 0-27     0-13 小 / 14-27 大（無和）
   台灣四星彩     4 位 0-9       總和 0-36     0-17 小 / 18 和 / 19-36 大
@@ -74,6 +76,16 @@ GAMES = {
         charts=[("大小 6球", "main", "bs"), ("大小 7球", "all", "bs"),
                 ("單雙 6球", "main", "oe"), ("單雙 7球", "all", "oe")],
     ),
+    "tw638": dict(
+        icon="638",
+        tint="#db2777",
+        name="台灣威力彩", short="威力彩", src="taiwan", ep="SuperLotto638Result",
+        kind="pick", pool=38, n_main=6, has_special=True,
+        # 第二區是 1-8 的獨立號池，跟第一區不是同一個空間。
+        # sp_join=False 代表它不併進總和、不進大小單雙、也不畫進 1-38 的走勢格。
+        sp_join=False, sp_name="第二區", sp_pool=8,
+        charts=[("大小", "main", "bs"), ("單雙", "main", "oe")],
+    ),
     "hk6": dict(
         icon="6",
         tint="#c8352b",
@@ -99,6 +111,15 @@ GAMES = {
 }
 
 
+def sp_join(gid):
+    """這個彩種的特別號要不要併進總和？
+
+    六合彩／大樂透的特別號跟正選同一個號池（1-49），併進去才有「7 球和」。
+    威力彩的第二區是另一個 1-8 的池，併進去只會污染統計，所以標 False。
+    """
+    return GAMES.get(gid, {}).get("sp_join", True)
+
+
 def thresholds(g, scope):
     """回傳 (小上限, 和值 or None, 大下限)"""
     if g["kind"] == "digit":
@@ -109,7 +130,8 @@ def thresholds(g, scope):
             m = int(mid)
             return m - 1, m, m + 1
         return int(mid - 0.5), None, int(mid + 0.5)
-    n = g["n_main"] + (1 if (scope == "all" and g["has_special"]) else 0)
+    n = g["n_main"] + (1 if (scope == "all" and g["has_special"]
+                             and g.get("sp_join", True)) else 0)
     lo = sum(range(1, n + 1))
     hi = sum(range(g["pool"] - n + 1, g["pool"] + 1))
     mid = (lo + hi) / 2
@@ -290,8 +312,12 @@ def _mk(gid, did, date, main, sp):
 _PILIO_DATE = re.compile(r"(?<!\d)(\d{1,2})/(\d{1,2})\s*(\d{2})\s*\([日一二三四五六]\)")
 
 
-def parse_pilio(text, gid, n_main=6):
-    """pilio 的號碼列表（539／大樂透／六合彩共用格式）。
+def parse_pilio(text, gid, n_main=6, pool=49, sp_pool=None):
+    """pilio 的號碼列表（539／大樂透／威力彩／六合彩共用格式）。
+
+    pool 是正選的號池上限，sp_pool 是特別號的上限（威力彩第二區只到 8，
+    不給的話就跟正選同池）。原本一律寫死 1-49，威力彩只到 38，
+    寫死會讓誤判的號碼混進來。
 
     以「日期出現的位置」把整頁切成一段一段，每段代表一期。這樣不管欄位
     之間有沒有換行都能正確配對，而且特別號的搜尋範圍被下一個日期夾住，
@@ -311,11 +337,12 @@ def parse_pilio(text, gid, n_main=6):
             main = [int(x) for x in re.sub(r"\s", "", nm.group(0)).split(",")]
         except Exception:
             continue
-        if len(main) != n_main or not all(1 <= v <= 49 for v in main):
+        if len(main) != n_main or not all(1 <= v <= pool for v in main):
             continue
         sp = None
+        spmax = sp_pool or pool
         sm = sp_re.search(seg[nm.end(): nm.end() + 40])
-        if sm and 1 <= int(sm.group(1)) <= 49:
+        if sm and 1 <= int(sm.group(1)) <= spmax:
             sp = int(sm.group(1))
         mm, dd, yy = dm.groups()
         date = f"20{yy}-{int(mm):02d}-{int(dd):02d}"
@@ -330,6 +357,8 @@ def parse_pilio(text, gid, n_main=6):
 PILIO_TW = {
     "tw539": ("https://www.pilio.idv.tw/lto539/list.asp", "pick"),
     "tw649": ("https://www.pilio.idv.tw/ltobig/list.asp", "pick"),
+    # 威力彩在 pilio 的網址就叫 lto（沒有後綴），大樂透才是 ltobig。
+    "tw638": ("https://www.pilio.idv.tw/lto/list.asp", "pick"),
     "tw3d":  ("https://www.pilio.idv.tw/lto/list3.asp", "digit"),
     "tw4d":  ("https://www.pilio.idv.tw/lto/list4.asp", "digit"),
 }
@@ -365,7 +394,7 @@ def fetch_pilio_tw(gid, g, pages=2):
             print(f"      pilio 第 {p} 頁失敗 {e}")
             break
         rows = (parse_pilio_digit(txt, gid, g["digits"]) if kind == "digit"
-                else parse_pilio(txt, gid, g["n_main"]))
+                else parse_pilio(txt, gid, g["n_main"], g["pool"], g.get("sp_pool")))
         if not rows:
             break
         out += rows
@@ -420,7 +449,7 @@ def fetch_pilio_hk(gid, g, years):
         except Exception as e:
             print(f"      第 {page} 頁失敗 {e}")
             break
-        rows = parse_pilio(txt, gid, g["n_main"])
+        rows = parse_pilio(txt, gid, g["n_main"], g["pool"], g.get("sp_pool"))
         if not rows:
             break
         newest = min(r["draw_date"] for r in rows)
@@ -442,18 +471,19 @@ def fetch_pilio_hk(gid, g, years):
     return out
 
 
-# ── 樂透王 lotterywang.com：六個彩種全都有，當作共同備援 ──
+# ── 樂透王 lotterywang.com：七個彩種全都有，當作共同備援 ──
 #
 # 為什麼要有備援：先前每個彩種都只靠單一網站，那個網站改版、擋 IP、
-# 或當天沒更新，該彩種就整個停擺，只能等人手動處理。樂透王六款全收，
+# 或當天沒更新，該彩種就整個停擺，只能等人手動處理。樂透王七款全收，
 # 版型也一致，剛好可以當所有彩種的第二來源。
-# 頁面版型（六款相同）：
+# 頁面版型（七款相同）：
 #     2026.08.01 (六)          ← 日期
 #     26｜083 期               ← 期別（六合彩會有 ｜ 分隔）
 #     01 07 16 22 32 37 23     ← 號碼，有特別號的話排最後
 # 而且每一期會重複輸出兩次（響應式版型的兩套 DOM），要去重。
 LW_PATH = {"tw539": "lotto539", "tw649": "lotto649", "tw3d": "lotto3d",
-           "tw4d": "lotto4d", "hk6": "lottoHK", "ca_f5": "lottoCA5"}
+           "tw4d": "lotto4d", "hk6": "lottoHK", "ca_f5": "lottoCA5",
+           "tw638": "lotto638"}
 
 _LW_DATE = re.compile(r"(\d{4})\.(\d{1,2})\.(\d{1,2})\s*\([日一二三四五六]\)")
 
@@ -511,11 +541,12 @@ def parse_lotterywang(text, gid, n_main=5):
                                 "pool": 39, "has_special": False})
 
 
-# ── 彩世界開獎網 988cp：六款全有，當第三來源 ──
+# ── 彩世界開獎網 988cp：七款全有，當第三來源 ──
 # 版面：08/05(三) → 11959期 → 1923293038（每碼固定兩位黏在一起）
 # 六合彩是 6 碼 + "+" + 特別號；大樂透是 6 碼直接接特別號共 14 位。
 CP_PATH = {"tw539": "DayLotto", "tw649": "BigLotto", "hk6": "MARKSIX",
-           "tw3d": "3D", "tw4d": "4D", "ca_f5": "Fantasy5"}
+           "tw3d": "3D", "tw4d": "4D", "ca_f5": "Fantasy5",
+           "tw638": "SuperLotto"}
 _CP_DATE = re.compile(r"(?<!\d)(\d{2})/(\d{2})\s*\([日一二三四五六]\)")
 
 
@@ -615,7 +646,7 @@ def fetch_lw(gid, g, years):
 
 
 def with_988_backup(rows, gid, g, years):
-    """彩世界開獎網當最後一道防線（六款都支援）。"""
+    """彩世界開獎網當最後一道防線（七款都支援）。"""
     try:
         extra = fetch_988(gid, g, years)
     except Exception as e:
@@ -769,7 +800,10 @@ FETCHERS = {"taiwan": fetch_tw, "calottery": fetch_ca, "hkjc": fetch_hk}
 
 def mkrow(gid, draw_id, date, main, special):
     sm = sum(main)
-    sa = sm + special if special is not None else sm
+    # 威力彩的第二區是 1-8 的獨立號池，跟第一區不是同一個空間，
+    # 加進總和沒有意義（也會把大小單雙的門檻整個算歪），所以不併。
+    # 這種彩種在 GAMES 裡標 sp_join=False，其餘彩種維持原本的行為。
+    sa = (sm + special if (special is not None and sp_join(gid)) else sm)
     return dict(game=gid, draw_id=draw_id, draw_date=date,
                 numbers=json.dumps(main), special=special,
                 sum_main=sm, sum_all=sa)
@@ -803,7 +837,8 @@ def theory(g, scope):
     if g["kind"] == "digit":
         dd = dist_digit(g["digits"])
     else:
-        n = g["n_main"] + (1 if (scope == "all" and g["has_special"]) else 0)
+        n = g["n_main"] + (1 if (scope == "all" and g["has_special"]
+                                 and g.get("sp_join", True)) else 0)
         dd = dist_pick(g["pool"], n)
     tot = sum(dd.values())
     lo_max, tie, hi_min = thresholds(g, scope)
@@ -903,6 +938,9 @@ def build_html(con, force=False):
             pool=g.get("pool"), digits=g.get("digits"), n_main=g.get("n_main"),
             tint=g.get("tint", "#64748b"), icon=g.get("icon", ""),
             has_special=bool(g.get("has_special")),
+            sp_join=bool(g.get("sp_join", True)),
+            sp_name=g.get("sp_name", "特別號"),
+            sp_pool=g.get("sp_pool"),
             charts=[list(c) for c in g["charts"]], th=th,
             rows=[[r[0], r[1], json.loads(r[2]), r[3], r[4], r[5]] for r in rows],
         )
@@ -1581,7 +1619,8 @@ function render(){
   // 未開累計與開獎明細並列（橫條拉太寬很難讀，各佔一半剛好）
   H+=`<div class="two">`;
   H+=`<div><h2>未開累計　<span class="sub">`+
-     (G.kind==="digit"?"0-9，不分位數":(G.has_special?"只計正選":"距上次開出"))+
+     (G.kind==="digit"?"0-9，不分位數"
+        :(G.has_special?(G.sp_join===false?"只計第一區":"只計正選"):"距上次開出"))+
      `</span><span style="flex:1"></span>`+
      `<button class="btn sm" id="mgsort">最久沒開</button>`+
      `<button class="btn sm" id="mgview">橫條圖</button></h2>
@@ -1669,6 +1708,10 @@ function bindRoadBar(){
 // 未開累計＝這個號碼距離上次開出，已經過了幾期（截圖上那個「未開期數」）。
 // 選號型彩種算 1..pool 每個號碼；三星彩／四星彩改算 0-9 每個數字
 // （不分位數，任一位出現就算開過）。有特別號的彩種只看正選六顆。
+// 特別號在各彩種的叫法不一樣：六合彩／大樂透叫「特別號」（同一個號池），
+// 威力彩叫「第二區」（1-8 的另一個池）。文字統一從這裡拿。
+function spName(G){return G.sp_name||"特別號";}
+
 function gaps(G){
   const digit = G.kind==="digit";
   const list = digit ? [...Array(10).keys()]
@@ -1701,7 +1744,10 @@ function flashHTML(G){
   h+=`<div class="flashline"><span class="k">${G.kind==="digit"?"獎號":"開出號碼"}</span>`+
      r[2].map(v=>`<span class="pball">${pad(v)}</span>`).join("")+
      (r[3]!==null&&r[3]!==undefined?`<span class="plus">＋</span>`
-        +`<span class="pball sp">${pad(r[3])}</span>`:"")+`</div>`;
+        +`<span class="pball sp">${pad(r[3])}</span>`
+        +(G.sp_join===false?`<span style="color:var(--mute);font-size:12.5px">`
+            +`${spName(G)}（1-${G.sp_pool}，不計入大小單雙）</span>`:"")
+      :"")+`</div>`;
   h+=`<div class="flashline"><span class="k">總和</span><b>${r[4]}</b>`+
      (r[5]!==r[4]?`<span style="color:var(--mute);font-size:12.5px">（含特別號 ${r[5]}）</span>`:"")+`</div>`;
   // 每一種路子：結果 + 目前連幾個 + 近 12 期迷你路子條（跟 Discord 卡片一致）
@@ -1898,13 +1944,17 @@ function anzTrend(G){
     const set=new Set(r[2]); const sp=r[3];
     h+=`<div class="dt">${r[1].slice(5)}</div>`;
     nums.forEach(n=>{
+      // 威力彩的第二區是另一個號池（1-8），畫進第一區的格子會被讀成
+      // 「第一區開過這個號」，所以 sp_join=false 時只畫正選。
       h+=set.has(n)?`<div class="on">${pad2(n)}</div>`
-        :(n===sp?`<div class="on r">${pad2(n)}</div>`:`<div></div>`);
+        :((G.sp_join!==false&&n===sp)?`<div class="on r">${pad2(n)}</div>`:`<div></div>`);
     });
   });
   h+=`</div>`;
   return h+anzNote(`最近 ${N} 期，最新在最上面。`+
-    (G.has_special?"藍＝正選，紅＝特別號。":"")+"　橫向可捲動。");
+    (G.has_special?(G.sp_join===false
+        ?`藍＝第一區。${spName(G)}是另一個號池，不畫在這裡。`
+        :"藍＝正選，紅＝特別號。"):"")+"　橫向可捲動。");
 }
 
 /* 2. 尾數（個位 0-9）／頭數（十位）出現次數與目前未開期數 */
@@ -2431,7 +2481,7 @@ function gapHead(G){
     `共 ${G.rows.length.toLocaleString()} 期資料，最後一期 ${G.rows[G.rows.length-1][1]}。`+
     `數字＝距離上次開出已經過幾期，0 代表最新一期就有開。`+
     (G.kind==="digit"?"（不分位數，任一位出現就算開過）"
-                     :(G.has_special?"（只計正選，不含特別號）":""))+`</div>`;
+                     :(G.has_special?`（只計正選，不含${spName(G)}）`:""))+`</div>`;
 }
 $("psort").onclick=()=>{PS=PS==="gap"?"no":"gap";paintPanel();};
 $("pclose").onclick=()=>$("mask").classList.remove("on");
