@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-08-29 09:31:11",
+ "built_at_taipei": "2026-08-29 09:38:16",
  "built_by": "雲端",
  "games": {
   "tw539": {
@@ -41,6 +41,20 @@
    ],
    "special": 4,
    "count": 1149
+  },
+  "tw638": {
+   "name": "台灣威力彩",
+   "latest_date": "2026-08-27",
+   "latest_numbers": [
+    2,
+    7,
+    9,
+    11,
+    24,
+    36
+   ],
+   "special": 1,
+   "count": 1047
   },
   "hk6": {
    "name": "香港六合彩",
@@ -104,6 +118,14 @@
    "added": 0,
    "latest": "2026-08-28",
    "source_latest": "2026-08-28"
+  },
+  "tw638": {
+   "ok": true,
+   "error": null,
+   "fetched": 46,
+   "added": 0,
+   "latest": "2026-08-27",
+   "source_latest": "2026-08-27"
   },
   "hk6": {
    "ok": true,
