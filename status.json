@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-08-30 22:16:19",
+ "built_at_taipei": "2026-08-30 22:31:32",
  "built_by": "雲端",
  "games": {
   "tw539": {
@@ -96,11 +96,12 @@
  },
  "fetch": {
   "tw539": {
-   "ok": false,
-   "error": "pilio、樂透王、彩世界三個來源都取不到資料",
-   "fetched": 0,
+   "ok": true,
+   "error": null,
+   "fetched": 46,
    "added": 0,
-   "latest": "2026-08-29"
+   "latest": "2026-08-29",
+   "source_latest": "2026-08-29"
   },
   "ca_f5": {
    "ok": true,
@@ -111,40 +112,44 @@
    "source_latest": "2026-08-30"
   },
   "tw649": {
-   "ok": false,
-   "error": "pilio、樂透王、彩世界三個來源都取不到資料",
-   "fetched": 0,
+   "ok": true,
+   "error": null,
+   "fetched": 46,
    "added": 0,
-   "latest": "2026-08-28"
+   "latest": "2026-08-28",
+   "source_latest": "2026-08-28"
   },
   "tw638": {
-   "ok": false,
-   "error": "pilio、樂透王、彩世界三個來源都取不到資料",
-   "fetched": 0,
+   "ok": true,
+   "error": null,
+   "fetched": 46,
    "added": 0,
-   "latest": "2026-08-27"
+   "latest": "2026-08-27",
+   "source_latest": "2026-08-27"
   },
   "hk6": {
-   "ok": false,
-   "error": "pilio、樂透王、彩世界三個來源都取不到六合彩資料",
-   "fetched": 0,
+   "ok": true,
+   "error": null,
+   "fetched": 19,
    "added": 0,
-   "latest": "2026-08-29"
+   "latest": "2026-08-29",
+   "source_latest": "2026-08-29"
   },
   "tw3d": {
-   "ok": false,
-   "error": "pilio、樂透王、彩世界三個來源都取不到資料",
-   "fetched": 0,
+   "ok": true,
+   "error": null,
+   "fetched": 46,
    "added": 0,
-   "latest": "2026-08-29"
+   "latest": "2026-08-29",
+   "source_latest": "2026-08-29"
   },
   "tw4d": {
    "ok": true,
    "error": null,
-   "fetched": 1,
+   "fetched": 46,
    "added": 0,
    "latest": "2026-08-29",
-   "source_latest": "2026-05-06"
+   "source_latest": "2026-08-29"
   }
  }
 }
