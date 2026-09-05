@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-09-05 21:46:09",
+ "built_at_taipei": "2026-09-05 22:01:19",
  "built_by": "雲端",
  "games": {
   "tw539": {
@@ -131,7 +131,7 @@
    "ok": true,
    "error": null,
    "fetched": 18,
-   "added": 1,
+   "added": 0,
    "latest": "2026-09-05",
    "source_latest": "2026-09-05"
   },
