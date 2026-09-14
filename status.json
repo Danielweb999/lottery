@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-09-14 20:46:12",
+ "built_at_taipei": "2026-09-14 21:01:32",
  "built_by": "雲端",
  "games": {
   "tw539": {
@@ -44,17 +44,17 @@
   },
   "tw638": {
    "name": "台灣威力彩",
-   "latest_date": "2026-09-10",
+   "latest_date": "2026-09-14",
    "latest_numbers": [
-    8,
-    17,
-    18,
+    10,
+    12,
+    14,
+    16,
     29,
-    33,
-    38
+    36
    ],
-   "special": 2,
-   "count": 1051
+   "special": 8,
+   "count": 1052
   },
   "hk6": {
    "name": "香港六合彩",
@@ -99,7 +99,7 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 1,
+   "added": 0,
    "latest": "2026-09-14",
    "source_latest": "2026-09-14"
   },
@@ -123,9 +123,9 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 0,
-   "latest": "2026-09-10",
-   "source_latest": "2026-09-10"
+   "added": 1,
+   "latest": "2026-09-14",
+   "source_latest": "2026-09-14"
   },
   "hk6": {
    "ok": true,
@@ -139,7 +139,7 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 1,
+   "added": 0,
    "latest": "2026-09-14",
    "source_latest": "2026-09-14"
   },
@@ -147,7 +147,7 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 1,
+   "added": 0,
    "latest": "2026-09-14",
    "source_latest": "2026-09-14"
   }
