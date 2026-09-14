@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-09-14 09:31:20",
+ "built_at_taipei": "2026-09-14 09:46:14",
  "built_by": "雲端",
  "games": {
   "tw539": {
@@ -17,16 +17,16 @@
   },
   "ca_f5": {
    "name": "加州天天樂",
-   "latest_date": "2026-09-13",
+   "latest_date": "2026-09-14",
    "latest_numbers": [
-    19,
-    21,
-    33,
-    35,
-    38
+    1,
+    2,
+    12,
+    34,
+    36
    ],
    "special": null,
-   "count": 1657
+   "count": 1658
   },
   "tw649": {
    "name": "台灣大樂透",
@@ -107,9 +107,9 @@
    "ok": true,
    "error": null,
    "fetched": 20,
-   "added": 0,
-   "latest": "2026-09-13",
-   "source_latest": "2026-09-13"
+   "added": 1,
+   "latest": "2026-09-14",
+   "source_latest": "2026-09-14"
   },
   "tw649": {
    "ok": true,
