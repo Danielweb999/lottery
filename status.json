@@ -1,19 +1,19 @@
 {
- "built_at_taipei": "2026-09-22 20:32:38",
+ "built_at_taipei": "2026-09-22 20:46:20",
  "built_by": "雲端",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
-   "latest_date": "2026-09-21",
+   "latest_date": "2026-09-22",
    "latest_numbers": [
-    4,
+    8,
+    13,
     20,
-    22,
-    30,
-    38
+    31,
+    34
    ],
    "special": null,
-   "count": 3183
+   "count": 3184
   },
   "ca_f5": {
    "name": "加州天天樂",
@@ -30,17 +30,17 @@
   },
   "tw649": {
    "name": "台灣大樂透",
-   "latest_date": "2026-09-18",
+   "latest_date": "2026-09-22",
    "latest_numbers": [
-    1,
-    6,
     14,
-    21,
-    31,
-    35
+    15,
+    18,
+    30,
+    35,
+    45
    ],
-   "special": 16,
-   "count": 1155
+   "special": 10,
+   "count": 1156
   },
   "tw638": {
    "name": "台灣威力彩",
@@ -99,9 +99,9 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 0,
-   "latest": "2026-09-21",
-   "source_latest": "2026-09-21"
+   "added": 1,
+   "latest": "2026-09-22",
+   "source_latest": "2026-09-22"
   },
   "ca_f5": {
    "ok": true,
@@ -115,9 +115,9 @@
    "ok": true,
    "error": null,
    "fetched": 46,
-   "added": 0,
-   "latest": "2026-09-18",
-   "source_latest": "2026-09-18"
+   "added": 1,
+   "latest": "2026-09-22",
+   "source_latest": "2026-09-22"
   },
   "tw638": {
    "ok": true,
