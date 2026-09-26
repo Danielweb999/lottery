@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-09-27 00:30:54",
+ "built_at_taipei": "2026-09-27 00:45:53",
  "built_by": "雲端",
  "games": {
   "tw539": {
@@ -98,7 +98,7 @@
   "tw539": {
    "ok": true,
    "error": null,
-   "fetched": 277,
+   "fetched": 276,
    "added": 0,
    "latest": "2026-09-26",
    "source_latest": "2026-09-26"
@@ -130,7 +130,7 @@
   "hk6": {
    "ok": true,
    "error": null,
-   "fetched": 117,
+   "fetched": 116,
    "added": 0,
    "latest": "2026-09-26",
    "source_latest": "2026-09-26"
@@ -138,7 +138,7 @@
   "tw3d": {
    "ok": true,
    "error": null,
-   "fetched": 277,
+   "fetched": 276,
    "added": 0,
    "latest": "2026-09-26",
    "source_latest": "2026-09-26"
@@ -146,7 +146,7 @@
   "tw4d": {
    "ok": true,
    "error": null,
-   "fetched": 277,
+   "fetched": 276,
    "added": 0,
    "latest": "2026-09-26",
    "source_latest": "2026-09-26"
