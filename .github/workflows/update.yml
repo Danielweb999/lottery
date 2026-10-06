@@ -21,7 +21,12 @@ concurrency:
 
 jobs:
   update:
-    runs-on: ubuntu-latest
+    # ⚠ 釘死版本，不要改回 ubuntu-latest。
+    # 2026-10-19 起 ubuntu-latest 會換成 Ubuntu 26。底層一換，
+    # 「安裝中文字型」那一步失敗時只會發 warning 然後繼續跑，
+    # 結果是推播圖的中文變成方框——不會失敗、不會寄信，很難發現。
+    # 要升版請自己挑時間改這一行，改完確認速報圖的中文是正常的。
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       # v5 / v6 才是跑在 Node 24 上，用舊版會一直收到「Node.js 20 is

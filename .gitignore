@@ -1,0 +1,6 @@
+# Python 編譯快取，不該進版控（以前被 git add -A 一起收進來過）
+__pycache__/
+*.pyc
+
+# 本機 notify.py --dry 的預覽圖
+preview.png
