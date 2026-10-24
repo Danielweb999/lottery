@@ -1,19 +1,19 @@
 {
- "built_at_taipei": "2026-10-24 20:15:50",
+ "built_at_taipei": "2026-10-24 20:36:44",
  "built_by": "雲端",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
-   "latest_date": "2026-10-23",
+   "latest_date": "2026-10-24",
    "latest_numbers": [
-    3,
-    7,
-    14,
+    1,
     17,
-    27
+    24,
+    27,
+    35
    ],
    "special": null,
-   "count": 3211
+   "count": 3212
   },
   "ca_f5": {
    "name": "加州天天樂",
@@ -99,9 +99,9 @@
    "ok": true,
    "error": null,
    "fetched": 300,
-   "added": 0,
-   "latest": "2026-10-23",
-   "source_latest": "2026-10-23"
+   "added": 1,
+   "latest": "2026-10-24",
+   "source_latest": "2026-10-24"
   },
   "ca_f5": {
    "ok": true,
