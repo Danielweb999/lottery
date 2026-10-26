@@ -1,19 +1,19 @@
 {
- "built_at_taipei": "2026-10-26 20:15:51",
+ "built_at_taipei": "2026-10-26 20:54:10",
  "built_by": "雲端",
  "games": {
   "tw539": {
    "name": "台灣今彩539",
-   "latest_date": "2026-10-24",
+   "latest_date": "2026-10-26",
    "latest_numbers": [
-    1,
-    17,
-    24,
-    27,
+    13,
+    15,
+    19,
+    28,
     35
    ],
    "special": null,
-   "count": 3212
+   "count": 3213
   },
   "ca_f5": {
    "name": "加州天天樂",
@@ -44,17 +44,17 @@
   },
   "tw638": {
    "name": "台灣威力彩",
-   "latest_date": "2026-10-22",
+   "latest_date": "2026-10-26",
    "latest_numbers": [
     1,
-    9,
-    10,
-    21,
-    22,
-    31
+    7,
+    19,
+    26,
+    31,
+    32
    ],
-   "special": 6,
-   "count": 1063
+   "special": 3,
+   "count": 1064
   },
   "hk6": {
    "name": "香港六合彩",
@@ -72,26 +72,26 @@
   },
   "tw3d": {
    "name": "台灣三星彩",
-   "latest_date": "2026-10-24",
+   "latest_date": "2026-10-26",
    "latest_numbers": [
-    6,
+    2,
     3,
-    6
+    0
    ],
    "special": null,
-   "count": 3212
+   "count": 3213
   },
   "tw4d": {
    "name": "台灣四星彩",
-   "latest_date": "2026-10-24",
+   "latest_date": "2026-10-26",
    "latest_numbers": [
-    9,
-    5,
-    3,
-    3
+    2,
+    7,
+    1,
+    4
    ],
    "special": null,
-   "count": 3212
+   "count": 3213
   }
  },
  "fetch": {
@@ -99,9 +99,9 @@
    "ok": true,
    "error": null,
    "fetched": 301,
-   "added": 0,
-   "latest": "2026-10-24",
-   "source_latest": "2026-10-24"
+   "added": 1,
+   "latest": "2026-10-26",
+   "source_latest": "2026-10-26"
   },
   "ca_f5": {
    "ok": true,
@@ -123,9 +123,9 @@
    "ok": true,
    "error": null,
    "fetched": 131,
-   "added": 0,
-   "latest": "2026-10-22",
-   "source_latest": "2026-10-22"
+   "added": 1,
+   "latest": "2026-10-26",
+   "source_latest": "2026-10-26"
   },
   "hk6": {
    "ok": true,
@@ -139,17 +139,17 @@
    "ok": true,
    "error": null,
    "fetched": 301,
-   "added": 0,
-   "latest": "2026-10-24",
-   "source_latest": "2026-10-24"
+   "added": 1,
+   "latest": "2026-10-26",
+   "source_latest": "2026-10-26"
   },
   "tw4d": {
    "ok": true,
    "error": null,
    "fetched": 301,
-   "added": 0,
-   "latest": "2026-10-24",
-   "source_latest": "2026-10-24"
+   "added": 1,
+   "latest": "2026-10-26",
+   "source_latest": "2026-10-26"
   }
  }
 }
