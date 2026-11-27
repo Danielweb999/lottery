@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-11-27 20:46:02",
+ "built_at_taipei": "2026-11-27 21:01:31",
  "built_by": "雲端",
  "games": {
   "tw539": {
@@ -30,17 +30,17 @@
   },
   "tw649": {
    "name": "台灣大樂透",
-   "latest_date": "2026-11-24",
+   "latest_date": "2026-11-27",
    "latest_numbers": [
-    10,
     11,
-    23,
-    24,
-    33,
-    42
+    20,
+    27,
+    32,
+    37,
+    47
    ],
-   "special": 40,
-   "count": 1174
+   "special": 30,
+   "count": 1175
   },
   "tw638": {
    "name": "台灣威力彩",
@@ -99,7 +99,7 @@
    "ok": true,
    "error": null,
    "fetched": 329,
-   "added": 1,
+   "added": 0,
    "latest": "2026-11-27",
    "source_latest": "2026-11-27"
   },
@@ -115,9 +115,9 @@
    "ok": true,
    "error": null,
    "fetched": 140,
-   "added": 0,
-   "latest": "2026-11-24",
-   "source_latest": "2026-11-24"
+   "added": 1,
+   "latest": "2026-11-27",
+   "source_latest": "2026-11-27"
   },
   "tw638": {
    "ok": true,
@@ -139,7 +139,7 @@
    "ok": true,
    "error": null,
    "fetched": 329,
-   "added": 1,
+   "added": 0,
    "latest": "2026-11-27",
    "source_latest": "2026-11-27"
   },
@@ -147,7 +147,7 @@
    "ok": true,
    "error": null,
    "fetched": 329,
-   "added": 1,
+   "added": 0,
    "latest": "2026-11-27",
    "source_latest": "2026-11-27"
   }
