@@ -1,5 +1,5 @@
 {
- "built_at_taipei": "2026-11-28 07:45:54",
+ "built_at_taipei": "2026-11-28 08:01:30",
  "built_by": "雲端",
  "games": {
   "tw539": {
@@ -130,7 +130,7 @@
   "hk6": {
    "ok": true,
    "error": null,
-   "fetched": 135,
+   "fetched": 134,
    "added": 0,
    "latest": "2026-11-24",
    "source_latest": "2026-11-24"
